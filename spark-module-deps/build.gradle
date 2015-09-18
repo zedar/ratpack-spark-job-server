@@ -1,0 +1,69 @@
+//----------------------------------------------------------------------------------------------------------------------
+// Gradle plugins from plugin central
+//----------------------------------------------------------------------------------------------------------------------
+plugins {
+  id "java"
+  id "idea"
+}
+
+//----------------------------------------------------------------------------------------------------------------------
+// Source code compatibility settings
+//----------------------------------------------------------------------------------------------------------------------
+
+if (!JavaVersion.current().java8Compatible) {
+  throw new IllegalStateException("Must be built at least with Java 1.8")
+}
+
+sourceCompatibility = 1.8
+targetCompatibility = 1.8
+
+gradle.projectsEvaluated {
+  tasks.withType(JavaCompile) {
+    options.compilerArgs << "-Xlint:unchecked" << "-Xlint:deprecation"
+  }
+}
+
+//----------------------------------------------------------------------------------------------------------------------
+// Project repositories
+//----------------------------------------------------------------------------------------------------------------------
+
+repositories {
+  mavenLocal()
+  mavenCentral()
+  jcenter()
+}
+
+//----------------------------------------------------------------------------------------------------------------------
+// Project dependencies
+//----------------------------------------------------------------------------------------------------------------------
+
+dependencies {
+  // Apache Spark core
+  compile "org.apache.spark:spark-core_2.10:1.5.0"
+}
+
+configurations.all {
+  resolutionStrategy {
+    // force certain versions of dependencies (including transitive)
+    //  *append new forced containers:
+    force(
+      // hadoop we are working with is in the latest version
+      "org.apache.hadoop:hadoop-client:2.7.1"
+    )
+  }
+}
+
+//----------------------------------------------------------------------------------------------------------------------
+// Build destribution - target jar and its dependencies
+//----------------------------------------------------------------------------------------------------------------------
+
+task cleanInstallLibDir(type: Delete) {
+  delete project.file("${buildDir}/install/lib")
+}
+
+task copyLibs(type: Copy) {
+  from(configurations.runtime)
+  into project.file("${buildDir}/install/lib")
+}
+
+task installDist(dependsOn: [cleanInstallLibDir, copyLibs])

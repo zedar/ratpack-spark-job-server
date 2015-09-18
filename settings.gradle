@@ -1,0 +1,6 @@
+include \
+  "spark-module-deps",
+  "spark-module-topn",
+  "ratpack-app"
+
+rootProject.name = 'ratpack-spark-job-server'
