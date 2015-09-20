@@ -23,12 +23,12 @@ public class ContainersLifecycle implements Service {
 
   @Override
   public void onStart(StartEvent event) throws Exception {
-    LOGGER.debug("STARTED");
+    LOGGER.info("STARTED");
   }
 
   @Override
   public void onStop(StopEvent event) throws Exception {
-    LOGGER.debug("STOPPED");
+    LOGGER.info("STOPPING");
     containersService.onStop();
   }
 }

@@ -30,11 +30,9 @@ public class SparkEndpoints implements Action<Chain> {
   public void execute(Chain chain) throws Exception {
     chain
       .path("top/:n?", ctx -> {
-        LOGGER.debug("IN SPARK ENDPOINTS");
         Integer topN = Integer.valueOf(ctx.getPathTokens().getOrDefault("n", "10"));
         ctx.byMethod(byMethodSpec -> byMethodSpec
             .post(() -> {
-              LOGGER.debug("IN SPARK ENDPOINTS 2");
               ctx.parse(fromJson(CalcTopN.class))
                 .onNull(() -> ctx.render(Integer.valueOf(-1)))
                 .then(ctn -> {

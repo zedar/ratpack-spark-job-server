@@ -58,18 +58,5 @@ public class Main {
         )
     );
     LOGGER.debug("STARTED: {}://{}:{}", ratpackServer.getScheme(), ratpackServer.getBindHost(), ratpackServer.getBindPort());
-//    Runtime.getRuntime().addShutdownHook(new Thread() {
-//      @Override
-//      public void run() {
-//        LOGGER.debug("STOPPING");
-//        try {
-//          LOGGER.debug("SERVER IS RUNNING: {}", ratpackServer.isRunning());
-//          ratpackServer.stop();
-//        } catch (Exception ex) {
-//          ex.printStackTrace();
-//        }
-//        LOGGER.debug("STOPPED");
-//      }
-//    });
   }
 }

@@ -31,12 +31,24 @@ Add the following settings.
     # OPTIONAL - SPARK_MASTER_IP, to bind the master to a different IP address or hostname
     SPARK_MASTER_IP=localhost
     
+## Import example access log data into the HDFS
+
+We assume that the current user is used as a hadoop user too. So create folder structure in hdfs directly. 
+
+    $ echo $USER
+    $ hdfs dfs -mkdir -p /user/$USER/input
+
+Import example access log data into the hdfs file system.
+ 
+    $ cd spark-module-topn/src/test/resources/input
+    $ hdfs dfs -copyFromLocal access*.log /user/$USER/input
+
 # Settings
 
 ## application.properties
 
 **spark.libsDir** - a path to folder with all Apache Spark dependencies. It is the results of 
-`./gradlew :spark-module-deps:installDir` command.
+`./gradlew :spark-module-deps:installDist` command.
 
     spark.libsDir=/Users/zedar/dev/hadoopdev/ratpack-hadoop-spark/spark-module-deps/build/install/lib/
 
@@ -81,7 +93,7 @@ holding *SparkContext*.
 Every Spark job is executed in seperate `Container`. There is a hirarchy of class loaders. The common (root) class loader 
 with all Apache Spark dependencies. Every `Container` has its own class loader with common (root) set as parent.
 
-Starting the server:
+Starting the server with building all dependencies:
 
     $ ./gradlew run
     

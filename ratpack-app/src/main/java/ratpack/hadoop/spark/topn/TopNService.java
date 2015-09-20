@@ -59,7 +59,7 @@ public class TopNService {
     return containersService
       .getJobContainer("TopN", sparkJobsConfig.getTopNJarsDir(), "spark.func.topn.TopNApp")
       .flatMap(container -> {
-        String inputPath = config.getHDFSURI(Strings.isNullOrEmpty(inputFS) ? "input_all" : inputFS);
+        String inputPath = config.getHDFSURI(Strings.isNullOrEmpty(inputFS) ? "input" : inputFS);
         String outputPath = config.getHDFSURI(Strings.isNullOrEmpty(outputFS) ? "output" : outputFS);
         ImmutableMap<String, String> params = ImmutableMap.of("limit", limit.getValue().toString());
         return container
