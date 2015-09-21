@@ -1,10 +1,15 @@
 Apache Spark job server
 -----------------------------
 
+The goal of this project is to initialize Apache `SparkContext` locally for every unique Spark app/job.
+Jobs are executed in the context of so called `container` (own class path loader). By doing this it is possible to execute
+jobs in already instantiated `SparkContext`, so much faster. Changed job parameters do not need new `SparkContext` instance.
+
+
 # Prerequisites
 
 ## [Hadoop/HDFS](http://hadoop.apache.org/docs/current/)
-The solution works with **Hadoop** version *2.7.1*. Hadoop is used as a distributed file system.
+The solution works with **Hadoop** version *2.7.1*. Hadoop is used mainly as a distributed file system - HDFS.
 The installation instructions for pseudo-distributed mode: [Hadoop Installation](http://hadoop.apache.org/docs/current/hadoop-project-dist/hadoop-common/SingleCluster.html#Pseudo-Distributed_Operation).
 Great explanation of the OSX installation procesess: [OSX Installation](http://joeyoung.io/installing-hadoop-and-yarn-on-os-x-trials-troubleshooting-and-work-arounds/).
 
@@ -45,7 +50,9 @@ Import example access log data into the hdfs file system.
 
 # Settings
 
-## application.properties
+Before the launch there is a need to set up some of the settings.
+
+## ratpack-app/src/ratpack/application.properties
 
 **spark.libsDir** - a path to folder with all Apache Spark dependencies. It is the results of 
 `./gradlew :spark-module-deps:installDist` command.
@@ -76,11 +83,19 @@ Import example access log data into the hdfs file system.
 
     spark.fileSystemPort=54310
 
-## sparkjobs.properties
+## ratpack-app/src/ratpack/sparkjobs.properties
 
 **job.topNJarsDir** - a path to folder with jars needed by TopN Spark job.
 
     job.topNJarsDir=/Users/zedar/dev/hadoopdev/ratpack-spark-job-server/spark-module-topn/build/libs/
+
+# Spark Job Container
+
+Apache Spark jobs are executed in own containers, that in one-to-one relationship with `SparkContext`.
+Initialization of `SparkContext` is expensive and has to be one threaded. So all requests to the same container have to
+wait for `SparkContext` initialization.
+
+A container loads all dependecies throughout own class loader. Then conflicts between Ratpack and Spark `jars` are eliminated.
 
 # Build and run the job server
 
