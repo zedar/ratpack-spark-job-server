@@ -49,7 +49,10 @@ public class ContainersService {
    * @return the promise for job container
    */
   public Promise<Container> getJobContainer(String jobName, String jobClassJarPath, String jobClassName) {
-    if (containers.get(jobName) != null) {
+    Container container = containers.get(jobName);
+    if (container != null) {
+      if ()
+
       return Promise.value(containers.get(jobName));
     }
     return Blocking.get(() -> {

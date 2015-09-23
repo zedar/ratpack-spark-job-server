@@ -1,5 +1,6 @@
 package spark.func.topn;
 
+import com.google.common.base.Strings;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
@@ -8,6 +9,7 @@ import org.apache.hadoop.fs.*;
 import org.apache.spark.SparkConf;
 import org.apache.spark.api.java.JavaPairRDD;
 import org.apache.spark.api.java.JavaSparkContext;
+import org.apache.spark.broadcast.Broadcast;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import scala.Tuple2;
@@ -15,6 +17,8 @@ import scala.Tuple2;
 import java.io.BufferedReader;
 import java.io.InputStreamReader;
 import java.io.Serializable;
+import java.time.LocalDate;
+import java.time.format.DateTimeFormatter;
 import java.util.*;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -27,6 +31,8 @@ public class TopNApp {
 
   private static final String USER_REGEX = "(username=')([A-Za-z0-9]{8}+)(')";
   private static final Pattern USER_PATTERN = Pattern.compile(USER_REGEX);
+  private static final String TIME_AND_USER_REGEX = "^(\\[)([0-9]{2}\\/[A-Za-z]{3}\\/[0-9]{4})(.)+(username=')([A-Za-z0-9]{8}+)(')";
+  private static final Pattern TIME_AND_USER_PATTERN = Pattern.compile(TIME_AND_USER_REGEX);
 
   /**
    * The entry point for {@code Apache Spark} calculation.
@@ -73,15 +79,39 @@ public class TopNApp {
       fileSystem.delete(new Path(outputPath), false);
     }
     LOGGER.debug("JOB STARTED");
+    // broadcast the compiled pattern
+    Broadcast<Pattern> timeAndUserPattern = sparkContext.broadcast(TIME_AND_USER_PATTERN);
+
     Integer limit = 10;
     if (params != null) {
       limit = params.get("limit") != null ? Integer.valueOf(params.get("limit")) : limit;
     }
+    // broadcast the date from and to across the cluster
+    Broadcast<LocalDate> dateFrom = null, dateTo = null;
+    if (params != null && !Strings.isNullOrEmpty(params.get("dateFrom"))) {
+      LocalDate df = LocalDate.parse(params.get("dateFrom"));
+      dateFrom = sparkContext.broadcast(df);
+    }
+    if (params != null && !Strings.isNullOrEmpty(params.get("dateTo"))) {
+      LocalDate dt = LocalDate.parse(params.get("dateTo"));
+      dateTo = sparkContext.broadcast(dt);
+    }
+    Broadcast<LocalDate> dateFromFinal = dateFrom, dateToFinal = dateTo;
     JavaPairRDD<String, Integer> pairRDD = sparkContext.textFile(inputPath)
       .<String, Integer>flatMapToPair(s -> {
-        Matcher matcher = USER_PATTERN.matcher(s);
+        Matcher matcher = timeAndUserPattern.getValue().matcher(s);
         if (matcher.find()) {
-          return Arrays.asList(new Tuple2<String, Integer>(matcher.group(2), 1));
+          if (dateFromFinal != null || dateToFinal != null) {
+            String d = matcher.group(2);
+            LocalDate date = LocalDate.parse(d, DateTimeFormatter.ofPattern("dd/MMM/yyyy").withLocale(Locale.ENGLISH));
+            if (dateFromFinal != null && date.isBefore(dateFromFinal.getValue())) {
+              return Collections.emptyList();
+            }
+            if (dateToFinal != null && date.isAfter(dateToFinal.getValue())) {
+              return Collections.emptyList();
+            }
+          }
+          return Arrays.asList(new Tuple2<String, Integer>(matcher.group(5), 1));
         } else {
           return Collections.emptyList();
         }

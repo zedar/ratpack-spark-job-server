@@ -61,7 +61,10 @@ public class TopNService {
       .flatMap(container -> {
         String inputPath = config.getHDFSURI(Strings.isNullOrEmpty(inputFS) ? "input" : inputFS);
         String outputPath = config.getHDFSURI(Strings.isNullOrEmpty(outputFS) ? "output" : outputFS);
-        ImmutableMap<String, String> params = ImmutableMap.of("limit", limit.getValue().toString());
+        ImmutableMap<String, String> params = ImmutableMap.of(
+          "limit", limit.getValue().toString(),
+          "dateFrom", (timeInterval != null && timeInterval.getDateFrom() != null ? timeInterval.getDateFrom().toString() : ""),
+          "dateTo", (timeInterval != null && timeInterval.getDateTo() != null ? timeInterval.getDateTo().toString() : ""));
         return container
           .runJob(params, inputPath, outputPath)
           .flatMap(uuid -> container.<List<List<String>>>fetchJobResults(outputPath, uuid));

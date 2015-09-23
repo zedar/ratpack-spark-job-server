@@ -1,5 +1,11 @@
 package spark.func.topn;
 
+import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.Maps;
+import org.apache.spark.SparkConf;
+import org.apache.spark.api.java.JavaSparkContext;
+import org.junit.AfterClass;
+import org.junit.BeforeClass;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
@@ -8,12 +14,33 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.Map;
 
 import static org.junit.Assert.*;
 
 public class TopNAppTest {
   @Rule
   public TemporaryFolder temporaryFolder = new TemporaryFolder();
+
+  public static JavaSparkContext sparkContext;
+
+  @BeforeClass
+  public static void setup() {
+    SparkConf conf = new SparkConf()
+      .setAppName("TopNApp")
+      .setMaster("local")
+      .set("spark.serializer", "org.apache.spark.serializer.KryoSerializer")
+      .set("spark.io.compression.codec", "lz4");
+    sparkContext = new JavaSparkContext(conf);
+  }
+
+  @AfterClass
+  public static void teardown() {
+    if (sparkContext != null) {
+      sparkContext.stop();
+      sparkContext = null;
+    }
+  }
 
   @Test
   public void testTopNApp() {
@@ -28,7 +55,8 @@ public class TopNAppTest {
       assertNotNull(path.toFile());
       assertTrue(path.toFile().exists());
 
-      TopNApp.main("local", null, inputDir, outputDir);
+      Map<String, String> params = ImmutableMap.of("limit", "3", "dateFrom", "2015-07-12", "dateTo", "2015-07-22");
+      TopNApp.runJob(null, sparkContext, params, inputDir, outputDir);
 
       // Read output file
       path = Paths.get(temporaryFolder.getRoot().toString());
