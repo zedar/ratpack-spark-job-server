@@ -51,9 +51,7 @@ public class ContainersService {
   public Promise<Container> getJobContainer(String jobName, String jobClassJarPath, String jobClassName) {
     Container container = containers.get(jobName);
     if (container != null) {
-      if ()
-
-      return Promise.value(containers.get(jobName));
+      return Promise.value(container);
     }
     return Blocking.get(() -> {
       // IMPORTANT: lock is required in order to synchronize initalization of spark context.

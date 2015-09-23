@@ -35,7 +35,17 @@ Add the following settings.
 
     # OPTIONAL - SPARK_MASTER_IP, to bind the master to a different IP address or hostname
     SPARK_MASTER_IP=localhost
-    
+
+### Apache Spark recovery settings
+
+Apache Spark has built-in support for slave/worker nodes failures. But the master node is single point of failure.
+The description of high availability configuration with ZooKeeper can be find in [documentation](http://spark.apache.org/docs/latest/spark-standalone.html#high-availability).
+
+If we want to keep single node configuration bewteen master node restarts we can setup the following property in `conf/spark-env.sh`
+
+    # set config properties for all daemons (e.g. "-Dx=y")
+    SPARK_DAEMON_JAVA_OPTS="-Dspark.deploy.recoveryMode=FILESYSTEM -Dspark.deploy.recoveryDirectory=recovery"
+
 ## Import example access log data into the HDFS
 
 We assume that the current user is used as a hadoop user too. So create folder structure in hdfs directly. 
@@ -47,6 +57,7 @@ Import example access log data into the hdfs file system.
  
     $ cd spark-module-topn/src/test/resources/input
     $ hdfs dfs -copyFromLocal access*.log /user/$USER/input
+
 
 # Settings
 
