@@ -134,6 +134,9 @@ A container loads all dependecies throughout own class loader. Then conflicts be
 Ratpack application because of so many conflicts. They are loaded in seperate class loader used by so called *containers*
 holding *SparkContext*.
 * Module: **spark-module-topn**: implementation of calculating the most active N users based on the specific access log.
+* Module: **spark-module-movie-recommendation**: implementation of movie recommendation algorithm. 
+Algorithm uses Spark MLib (Machine Learning Library) and finds the best movies for the given user.
+
 * Module: **ratpack-app**: the server with endpoints to execute Spark jobs
 
 Every Spark job is executed in seperate `Container`. There is a hirarchy of class loaders. The common (root) class loader 
