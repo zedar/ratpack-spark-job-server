@@ -11,6 +11,7 @@ import lombok.ToString;
 @ToString
 public class SparkJobsConfig {
   private String topNJarsDir;
+  private String movieRecommendationJarsDir;
 
   /**
    * The path to folder with jars containing TopN algorithm. In Apache Spark convention
@@ -25,8 +26,26 @@ public class SparkJobsConfig {
    * @param topNJars the path
    * @return this
    */
-  public SparkJobsConfig topNJars(String topNJars) {
+  public SparkJobsConfig topNJarsDir(String topNJars) {
     this.topNJarsDir = topNJars;
+    return this;
+  }
+
+  /**
+   * The path to folder with jars or one jar implementing movie recommendation algorithm.
+   * @return tge path to jars
+   */
+  public String getMovieRecommendationJarsDir() {
+    return movieRecommendationJarsDir;
+  }
+
+  /**
+   * Sets the path to the jars implementing movie recommendations algorithm
+   * @param movieRecommendationJarsDir a path
+   * @return this
+   */
+  public SparkJobsConfig movieRecommendationJarsDir(String movieRecommendationJarsDir) {
+    this.movieRecommendationJarsDir = movieRecommendationJarsDir;
     return this;
   }
 }

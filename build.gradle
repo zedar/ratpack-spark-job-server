@@ -9,8 +9,12 @@ plugins {
 // Run application - prepare all dependencies
 //----------------------------------------------------------------------------------------------------------------------
 
-task run(dependsOn: [":spark-module-deps:installDist", ":spark-module-topn:installDist", ":ratpack-app:run"])
-run.mustRunAfter([":spark-module-deps:installDist", ":spark-module-topn:installDist"])
+task run(dependsOn: [
+  ":spark-module-deps:installDist",
+  ":spark-module-topn:installDist",
+  ":spark-module-movie-recommendation:installDist",
+  ":ratpack-app:run"])
+run.mustRunAfter([":spark-module-deps:installDist", ":spark-module-topn:installDist", ":spark-module-movie-recommendation:installDist"])
 
 //----------------------------------------------------------------------------------------------------------------------
 // Gradle Wrapper - use $ ./gradlew wrapper in order to force gradle version

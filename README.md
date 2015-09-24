@@ -100,6 +100,15 @@ Before the launch there is a need to set up some of the settings.
 
     job.topNJarsDir=/Users/zedar/dev/hadoopdev/ratpack-spark-job-server/spark-module-topn/build/libs/
 
+# Spark and multiple SparkContexts in the same JVM
+
+As for the 1.5 Spark version simple it does not work. Spark is able to work with only one SparkContext instance per JVM.
+If you run more than one you can get exceptions like:
+
+    org.apache.spark.SparkException: Failed to get broadcast
+
+That is the reason why our containers share the SparkContext and just add job jars to it when it is needed (lazy loading).
+
 # Spark Job Container
 
 Apache Spark jobs are executed in own containers, that in one-to-one relationship with `SparkContext`.

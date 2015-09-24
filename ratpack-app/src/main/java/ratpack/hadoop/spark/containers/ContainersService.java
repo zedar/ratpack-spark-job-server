@@ -102,6 +102,8 @@ public class ContainersService {
         m.invoke(sparkConf, "spark.cores.max", maxCoresPerTask);
         m.invoke(sparkConf, "spark.serializer", "org.apache.spark.serializer.KryoSerializer");
         m.invoke(sparkConf, "spark.io.compression.codec", "lz4");
+        m.invoke(sparkConf, "spark.driver.allowMultipleContexts", "true");
+        //m.invoke(sparkConf, "spark.broadcast.factory", "org.apache.spark.broadcast.HttpBroadcastFactory");
 
         Class javaSparkContextClass = jobClassLoader.loadClass("org.apache.spark.api.java.JavaSparkContext");
         Constructor jscConstructor = javaSparkContextClass.getDeclaredConstructor(sparkConfClass);

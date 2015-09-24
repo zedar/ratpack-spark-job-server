@@ -73,41 +73,44 @@ public class TopNApp {
    * @throws Exception any but mainly {@link java.io.IOException}
    */
   public static void runJob(Configuration configuration, JavaSparkContext sparkContext, Map<String, String> params, String inputPath, String outputPath) throws Exception {
+    LOGGER.info("JOB STARTED");
+
     LOGGER.debug("JOB PREPARE OUTPUT");
     if (configuration != null) {
       FileSystem fileSystem = FileSystem.get(configuration);
       fileSystem.delete(new Path(outputPath), false);
     }
-    LOGGER.debug("JOB STARTED");
+
     // broadcast the compiled pattern
-    Broadcast<Pattern> timeAndUserPattern = sparkContext.broadcast(TIME_AND_USER_PATTERN);
+    //Broadcast<Pattern> timeAndUserPattern = sparkContext.broadcast(TIME_AND_USER_PATTERN);
 
     Integer limit = 10;
     if (params != null) {
       limit = params.get("limit") != null ? Integer.valueOf(params.get("limit")) : limit;
     }
     // broadcast the date from and to across the cluster
-    Broadcast<LocalDate> dateFrom = null, dateTo = null;
+    //Broadcast<LocalDate> dateFrom = null, dateTo = null;
+    LocalDate df = null, dt = null;
     if (params != null && !Strings.isNullOrEmpty(params.get("dateFrom"))) {
-      LocalDate df = LocalDate.parse(params.get("dateFrom"));
-      dateFrom = sparkContext.broadcast(df);
+      df = LocalDate.parse(params.get("dateFrom"));
+      //dateFrom = sparkContext.broadcast(df);
     }
     if (params != null && !Strings.isNullOrEmpty(params.get("dateTo"))) {
-      LocalDate dt = LocalDate.parse(params.get("dateTo"));
-      dateTo = sparkContext.broadcast(dt);
+      dt = LocalDate.parse(params.get("dateTo"));
+      //dateTo = sparkContext.broadcast(dt);
     }
-    Broadcast<LocalDate> dateFromFinal = dateFrom, dateToFinal = dateTo;
+    LocalDate dateFromFinal = df, dateToFinal = dt;
     JavaPairRDD<String, Integer> pairRDD = sparkContext.textFile(inputPath)
       .<String, Integer>flatMapToPair(s -> {
-        Matcher matcher = timeAndUserPattern.getValue().matcher(s);
+        Matcher matcher = TIME_AND_USER_PATTERN.matcher(s);
         if (matcher.find()) {
           if (dateFromFinal != null || dateToFinal != null) {
             String d = matcher.group(2);
             LocalDate date = LocalDate.parse(d, DateTimeFormatter.ofPattern("dd/MMM/yyyy").withLocale(Locale.ENGLISH));
-            if (dateFromFinal != null && date.isBefore(dateFromFinal.getValue())) {
+            if (dateFromFinal != null && date.isBefore(dateFromFinal)) {
               return Collections.emptyList();
             }
-            if (dateToFinal != null && date.isAfter(dateToFinal.getValue())) {
+            if (dateToFinal != null && date.isAfter(dateToFinal)) {
               return Collections.emptyList();
             }
           }
@@ -125,6 +128,8 @@ public class TopNApp {
       .takeOrdered(limit, new ValueComparator());
 
     sparkContext.parallelizePairs(result).saveAsTextFile(outputPath);
+
+    LOGGER.info("JOB FINISHED");
   }
 
   public static List<List<String>> fetchJobResults(Configuration configuration, String outputPath) throws Exception {
@@ -155,6 +160,9 @@ public class TopNApp {
       }
       is.close();
     }
+
+    fileSystem.delete(new Path(outputPath), true);
+
     return results;
   }
 

@@ -1,4 +1,4 @@
-package ratpack.hadoop.spark.topn.model;
+package ratpack.hadoop.spark.model;
 
 import com.fasterxml.jackson.core.JsonGenerator;
 import com.fasterxml.jackson.core.JsonProcessingException;

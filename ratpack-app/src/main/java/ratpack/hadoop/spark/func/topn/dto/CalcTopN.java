@@ -1,12 +1,12 @@
-package ratpack.hadoop.spark.topn.dto;
+package ratpack.hadoop.spark.func.topn.dto;
 
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.Getter;
 import lombok.ToString;
-import ratpack.hadoop.spark.topn.model.Limit;
-import ratpack.hadoop.spark.topn.model.TimeInterval;
+import ratpack.hadoop.spark.model.TimeInterval;
+import ratpack.hadoop.spark.model.Limit;
 
 /**
  * Parameters for executing top-n map reduce calculation.

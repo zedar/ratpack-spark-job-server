@@ -1,4 +1,4 @@
-package ratpack.hadoop.spark.topn.model;
+package ratpack.hadoop.spark.func.topn.model;
 
 import lombok.AllArgsConstructor;
 import lombok.EqualsAndHashCode;
