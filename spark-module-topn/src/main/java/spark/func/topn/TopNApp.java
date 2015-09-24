@@ -1,15 +1,27 @@
+/*
+ * Copyright 2013 the original author or authors.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *    http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 package spark.func.topn;
 
 import com.google.common.base.Strings;
-import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Lists;
-import com.google.common.collect.Maps;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.*;
 import org.apache.spark.SparkConf;
 import org.apache.spark.api.java.JavaPairRDD;
 import org.apache.spark.api.java.JavaSparkContext;
-import org.apache.spark.broadcast.Broadcast;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import scala.Tuple2;
@@ -90,7 +102,8 @@ public class TopNApp {
     }
     // broadcast the date from and to across the cluster
     //Broadcast<LocalDate> dateFrom = null, dateTo = null;
-    LocalDate df = null, dt = null;
+    LocalDate df = null;
+    LocalDate dt = null;
     if (params != null && !Strings.isNullOrEmpty(params.get("dateFrom"))) {
       df = LocalDate.parse(params.get("dateFrom"));
       //dateFrom = sparkContext.broadcast(df);
@@ -99,7 +112,8 @@ public class TopNApp {
       dt = LocalDate.parse(params.get("dateTo"));
       //dateTo = sparkContext.broadcast(dt);
     }
-    LocalDate dateFromFinal = df, dateToFinal = dt;
+    LocalDate dateFromFinal = df;
+    LocalDate dateToFinal = dt;
     JavaPairRDD<String, Integer> pairRDD = sparkContext.textFile(inputPath)
       .<String, Integer>flatMapToPair(s -> {
         Matcher matcher = TIME_AND_USER_PATTERN.matcher(s);

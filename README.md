@@ -102,20 +102,20 @@ Before the launch there is a need to set up some of the settings.
 
 # Spark and multiple SparkContexts in the same JVM
 
-As for the 1.5 Spark version simple it does not work. Spark is able to work with only one SparkContext instance per JVM.
-If you run more than one you can get exceptions like:
+The 1.5 Apache Spark version assumes that there is only one instance of the `SparkContext` per JVM. 
+Even if it is possible to set property `spark.driver.allowMultipleContexts` to `true`, exceptions are thrown:
 
     org.apache.spark.SparkException: Failed to get broadcast
 
-That is the reason why our containers share the SparkContext and just add job jars to it when it is needed (lazy loading).
+That is the reason why containers share the `SparkContext` between all jobs and job requests.
 
 # Spark Job Container
 
-Apache Spark jobs are executed in own containers, that in one-to-one relationship with `SparkContext`.
+Apache Spark jobs are executed in their own containers, that share one/common instance of the `SparkContext`.
 Initialization of `SparkContext` is expensive and has to be one threaded. So all requests to the same container have to
 wait for `SparkContext` initialization.
 
-A container loads all dependecies throughout own class loader. Then conflicts between Ratpack and Spark `jars` are eliminated.
+A container loads all dependecies throughout own class loader. Then conflicts between Ratpack and Spark `jars` are then eliminated.
 
 # Build and run the job server
 

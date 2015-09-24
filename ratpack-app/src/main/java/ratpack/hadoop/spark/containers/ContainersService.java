@@ -1,11 +1,26 @@
+/*
+ * Copyright 2013 the original author or authors.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *    http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 package ratpack.hadoop.spark.containers;
 
-import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import ratpack.exec.Blocking;
 import ratpack.exec.Promise;
 import ratpack.hadoop.spark.SparkConfig;
+import ratpack.hadoop.spark.SparkJobsConfig;
 import ratpack.hadoop.spark.util.ClassUtil;
 
 import javax.inject.Inject;
@@ -19,7 +34,6 @@ import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
-import java.util.Objects;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.locks.ReentrantLock;
 
@@ -27,29 +41,42 @@ import java.util.concurrent.locks.ReentrantLock;
  * The singleting services providing API for managing containers running Apache Spark jobs
  */
 public class ContainersService {
+  private static final String SPARK_APP_NAME = "JOBSERVER";
+
   private final SparkConfig config;
+  private final SparkJobsConfig sparkJobsConfig;
 
   private URLClassLoader rootClassLoader;
+  private URLClassLoader containersClassLoader;
 
   private ConcurrentMap<String, Container> containers = Maps.newConcurrentMap();
 
   private ReentrantLock lock = new ReentrantLock();
 
+  // hadoop configuration shared across all the containers
+  private Object hadoopConfiguration;
+
+  // spark configuration used to create JavaSprakContext
+  private Object sparkConfig;
+
+  // spark context shared across all the containers. Only one SparkContext can exists per JVM
+  private Object javaSparkContext;
+
   @Inject
-  public ContainersService(SparkConfig config) {
+  public ContainersService(SparkConfig config, SparkJobsConfig sparkJobsConfig) {
     this.config = config;
+    this.sparkJobsConfig = sparkJobsConfig;
   }
 
   /**
    * Creates container for executing Apache Spark job. Every {@code appName} has own container. Containers are reusable
    * across the same {@code appNames}.
-   * @param jobName an job name
-   * @param jobClassJarPath a job class path, where job's jar is present
+   * @param jobCodeName an job unique code name
    * @param jobClassName job execution class name
    * @return the promise for job container
    */
-  public Promise<Container> getJobContainer(String jobName, String jobClassJarPath, String jobClassName) {
-    Container container = containers.get(jobName);
+  public Promise<Container> getJobContainer(String jobCodeName, String jobClassName) {
+    Container container = containers.get(jobCodeName);
     if (container != null) {
       return Promise.value(container);
     }
@@ -58,70 +85,72 @@ public class ContainersService {
       // Spark context for the partivular job can be initialized only once.
       lock.lock();
       // IMPORTANT: many thread can wait for the lock. If spark context was intialized there is not need to initialize it again
-      if (containers.get(jobName) != null) {
-        return containers.get(jobName);
+      if (containers.get(jobCodeName) != null) {
+        return containers.get(jobCodeName);
       }
       ClassLoader classLoader = Thread.currentThread().getContextClassLoader();
       try {
-        List<URL> urlArrayList = Lists.newArrayList();
-        Path jobClassPath = Paths.get(jobClassJarPath);
-        if (Files.isDirectory(jobClassPath)) {
-          Files.walk(jobClassPath).forEach(p -> {
-            if (Files.isRegularFile(p)) {
-              try {
-                urlArrayList.add(p.toUri().toURL());
-              } catch (Exception ex) {
-                throw new RuntimeException(ex);
+        URLClassLoader containersClassLoader = getContainersClassLoader();
+        Thread.currentThread().setContextClassLoader(containersClassLoader);
+
+        Class configurationClass = containersClassLoader.loadClass("org.apache.hadoop.conf.Configuration");
+        if (hadoopConfiguration == null) {
+          Object configuration = configurationClass.newInstance();
+          Method method = configurationClass.getMethod("set", String.class, String.class);
+          method.invoke(configuration, "fs.defaultFS", config.getFileSystemAddress());
+
+          hadoopConfiguration = configuration;
+        }
+
+
+        Class javaSparkContextClass = containersClassLoader.loadClass("org.apache.spark.api.java.JavaSparkContext");
+        if (javaSparkContext == null) {
+          // Initialize list of jobs jars
+          Map<String, String> sparkContextJars = Maps.newHashMap();
+          if (sparkContextJars.isEmpty()) {
+            String[] jobClassNames = sparkJobsConfig.getClassNames();
+            for (String cn : jobClassNames) {
+              String jobJarPath = ClassUtil.findContainingJar(containersClassLoader, cn);
+              if (sparkContextJars.get(jobJarPath) == null) {
+                sparkContextJars.put(jobJarPath, jobJarPath);
               }
             }
-          });
-        } else {
-          urlArrayList.add(jobClassPath.toUri().toURL());
+          }
+          Class sparkConfClass = containersClassLoader.loadClass("org.apache.spark.SparkConf");
+
+          sparkConfig = sparkConfClass.newInstance();
+          Method m = sparkConfClass.getMethod("setAppName", String.class);
+          m.invoke(sparkConfig, SPARK_APP_NAME);
+          m = sparkConfClass.getMethod("setMaster", String.class);
+          m.invoke(sparkConfig, config.getMaster());
+          String maxCoresPerTask = config.getMaxCoresPerTask() == null ? "2" : config.getMaxCoresPerTask().toString();
+          m = sparkConfClass.getMethod("set", String.class, String.class);
+          m.invoke(sparkConfig, "spark.cores.max", maxCoresPerTask);
+          m.invoke(sparkConfig, "spark.serializer", "org.apache.spark.serializer.KryoSerializer");
+          m.invoke(sparkConfig, "spark.io.compression.codec", "lz4");
+          m.invoke(sparkConfig, "spark.driver.allowMultipleContexts", "true");
+          //m.invoke(sparkConf, "spark.broadcast.factory", "org.apache.spark.broadcast.HttpBroadcastFactory");
+          Method sparkConfSetJarsMethod = sparkConfClass.getMethod("setJars", new Class[]{String[].class});
+          sparkConfSetJarsMethod.invoke(sparkConfig, new Object[]{sparkContextJars.keySet().toArray(new String[]{})});
+
+          Constructor jscConstructor = javaSparkContextClass.getDeclaredConstructor(sparkConfClass);
+          Object jsCtx = jscConstructor.newInstance(sparkConfig);
+
+          javaSparkContext = jsCtx;
         }
-        URLClassLoader jobClassLoader = URLClassLoader.newInstance(urlArrayList.toArray(new URL[]{}), getRootClassLoader());
-        Thread.currentThread().setContextClassLoader(jobClassLoader);
 
-        // find path to Apache Spark app jar
-        String appJarPath = ClassUtil.findContainingJar(jobClassLoader, jobClassName);
-
-        Class configurationClass = jobClassLoader.loadClass("org.apache.hadoop.conf.Configuration");
-        Object configuration = configurationClass.newInstance();
-        Method method = configurationClass.getMethod("set", String.class, String.class);
-        method.invoke(configuration, "fs.defaultFS", config.getFileSystemAddress());
-
-        Class sparkConfClass = jobClassLoader.loadClass("org.apache.spark.SparkConf");
-        Object sparkConf = sparkConfClass.newInstance();
-        Method m = sparkConfClass.getMethod("setAppName", String.class);
-        m.invoke(sparkConf, jobName);
-        m = sparkConfClass.getMethod("setMaster", String.class);
-        m.invoke(sparkConf, config.getMaster());
-        m = sparkConfClass.getMethod("setJars", new Class[]{String[].class});
-        m.invoke(sparkConf, new Object[]{new String[]{appJarPath}});
-        String maxCoresPerTask = config.getMaxCoresPerTask() == null ? "2" : config.getMaxCoresPerTask().toString();
-        m = sparkConfClass.getMethod("set", String.class, String.class);
-        m.invoke(sparkConf, "spark.cores.max", maxCoresPerTask);
-        m.invoke(sparkConf, "spark.serializer", "org.apache.spark.serializer.KryoSerializer");
-        m.invoke(sparkConf, "spark.io.compression.codec", "lz4");
-        m.invoke(sparkConf, "spark.driver.allowMultipleContexts", "true");
-        //m.invoke(sparkConf, "spark.broadcast.factory", "org.apache.spark.broadcast.HttpBroadcastFactory");
-
-        Class javaSparkContextClass = jobClassLoader.loadClass("org.apache.spark.api.java.JavaSparkContext");
-        Constructor jscConstructor = javaSparkContextClass.getDeclaredConstructor(sparkConfClass);
-        Object javaSparkContext = jscConstructor.newInstance(sparkConf);
-        Method jscStopMethod = javaSparkContextClass.getMethod("stop");
-
-        Class appClass = jobClassLoader.loadClass(jobClassName);
+        Class appClass = containersClassLoader.loadClass(jobClassName);
         Method runJobMethod = appClass.getMethod("runJob", configurationClass, javaSparkContextClass, Map.class, String.class, String.class);
 
         Method fetchJobResultsMethod = appClass.getMethod("fetchJobResults", configurationClass, String.class);
 
-        containers.put(jobName, new Container(jobClassLoader, configuration, javaSparkContext, jscStopMethod, runJobMethod, fetchJobResultsMethod));
+        containers.put(jobCodeName, new Container(containersClassLoader, hadoopConfiguration, javaSparkContext, runJobMethod, fetchJobResultsMethod));
 
       } finally {
         Thread.currentThread().setContextClassLoader(classLoader);
         lock.unlock();
       }
-      return containers.get(jobName);
+      return containers.get(jobCodeName);
     });
   }
 
@@ -130,6 +159,11 @@ public class ContainersService {
    * @throws Exception
    */
   public void onStop() throws Exception {
+    if (javaSparkContext != null) {
+      Class javaSparkContextClass = containersClassLoader.loadClass("org.apache.spark.api.java.JavaSparkContext");
+      Method jscStopMethod = javaSparkContextClass.getMethod("stop");
+      jscStopMethod.invoke(javaSparkContext);
+    }
     if (containers.size() > 0) {
       stopJavaSparkContexts(containers.entrySet().toArray(new Container[]{}));
     }
@@ -156,11 +190,37 @@ public class ContainersService {
     return rootClassLoader;
   }
 
+  private URLClassLoader getContainersClassLoader() throws Exception {
+    if (containersClassLoader != null) {
+      return containersClassLoader;
+    }
+
+    List<URL> urlArrayList = Lists.newArrayList();
+    String[] jobJarsDirs = sparkJobsConfig.getJarsDirs();
+    for (String jobJarsDir : jobJarsDirs) {
+      Path jobClassPath = Paths.get(jobJarsDir);
+      if (Files.isDirectory(jobClassPath)) {
+        Files.walk(jobClassPath).forEach(p -> {
+          if (Files.isRegularFile(p)) {
+            try {
+              urlArrayList.add(p.toUri().toURL());
+            } catch (Exception ex) {
+              throw new RuntimeException(ex);
+            }
+          }
+        });
+      } else {
+        urlArrayList.add(jobClassPath.toUri().toURL());
+      }
+    }
+
+    containersClassLoader = URLClassLoader.newInstance(urlArrayList.toArray(new URL[]{}), getRootClassLoader());
+    return containersClassLoader;
+  }
+
   private void stopJavaSparkContexts(Container... containers) throws Exception{
     for (Container container : containers) {
-      if (container.getJavaSparkContext() != null) {
-        container.getJavaSparkContextStopMethod().invoke(container.getJavaSparkContext());
-      }
+      container.stop();
     }
   }
 }

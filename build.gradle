@@ -3,6 +3,13 @@
 //----------------------------------------------------------------------------------------------------------------------
 plugins {
   id "idea"
+  id "checkstyle"
+}
+
+idea {
+  project {
+    languageLevel "1.8"
+  }
 }
 
 //----------------------------------------------------------------------------------------------------------------------
@@ -15,6 +22,17 @@ task run(dependsOn: [
   ":spark-module-movie-recommendation:installDist",
   ":ratpack-app:run"])
 run.mustRunAfter([":spark-module-deps:installDist", ":spark-module-topn:installDist", ":spark-module-movie-recommendation:installDist"])
+
+// ---------------------------------------------------------------------------------------------------------------------
+// checkstyle
+// ---------------------------------------------------------------------------------------------------------------------
+
+def checkstyleConfigDir = new File(buildscript.sourceFile.parentFile, 'config/checkstyle')
+
+checkstyle {
+  configFile = new File(checkstyleConfigDir, "checkstyle.xml")
+  configProperties.checkstyleConfigDir = checkstyleConfigDir
+}
 
 //----------------------------------------------------------------------------------------------------------------------
 // Gradle Wrapper - use $ ./gradlew wrapper in order to force gradle version

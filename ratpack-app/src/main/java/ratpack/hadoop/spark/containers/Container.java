@@ -1,8 +1,22 @@
+/*
+ * Copyright 2013 the original author or authors.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *    http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 package ratpack.hadoop.spark.containers;
 
 import com.google.common.collect.ImmutableMap;
 import lombok.AllArgsConstructor;
-import lombok.Builder;
 import lombok.Getter;
 import lombok.ToString;
 import ratpack.exec.Blocking;
@@ -40,13 +54,6 @@ public class Container {
   @Getter private Object javaSparkContext;
 
   /**
-   * Java Spark Context {@code stop} method.
-   *
-   * @return the method to stop a Java Spark Context
-   */
-  @Getter private Method javaSparkContextStopMethod;
-
-  /**
    * The method {@code runJob} used to execute the job
    */
   private Method runJobMethod;
@@ -61,9 +68,6 @@ public class Container {
    * @throws Exception
    */
   public void stop() throws Exception {
-    if (getJavaSparkContext() != null) {
-      getJavaSparkContextStopMethod().invoke(getJavaSparkContext());
-    }
   }
 
   /**

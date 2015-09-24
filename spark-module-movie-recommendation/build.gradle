@@ -2,9 +2,10 @@
 // Gradle plugins from plugin central
 //----------------------------------------------------------------------------------------------------------------------
 plugins {
-    id "java"
-    id "maven"
-    id "idea"
+  id "java"
+  id "maven"
+  id "idea"
+  id "checkstyle"
 }
 
 //----------------------------------------------------------------------------------------------------------------------
@@ -54,7 +55,6 @@ dependencies {
     testCompile 'junit:junit:4.12'
 }
 
-
 configurations.all {
     resolutionStrategy {
         // force certain versions of dependencies (including transitive)
@@ -67,3 +67,14 @@ configurations.all {
 }
 
 task installDist(dependsOn: [jar])
+
+// ---------------------------------------------------------------------------------------------------------------------
+// checkstyle
+// ---------------------------------------------------------------------------------------------------------------------
+
+def checkstyleConfigDir = new File(buildscript.sourceFile.parentFile, '../config/checkstyle')
+
+checkstyle {
+  configFile = new File(checkstyleConfigDir, "checkstyle.xml")
+  configProperties.checkstyleConfigDir = checkstyleConfigDir
+}

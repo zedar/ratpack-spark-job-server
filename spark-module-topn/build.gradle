@@ -5,6 +5,7 @@ plugins {
   id "java"
   id "maven"
   id "idea"
+  id "checkstyle"
 }
 
 //----------------------------------------------------------------------------------------------------------------------
@@ -65,3 +66,14 @@ configurations.all {
 }
 
 task installDist(dependsOn: [jar])
+
+// ---------------------------------------------------------------------------------------------------------------------
+// checkstyle
+// ---------------------------------------------------------------------------------------------------------------------
+
+def checkstyleConfigDir = new File(buildscript.sourceFile.parentFile, '../config/checkstyle')
+
+checkstyle {
+  configFile = new File(checkstyleConfigDir, "checkstyle.xml")
+  configProperties.checkstyleConfigDir = checkstyleConfigDir
+}

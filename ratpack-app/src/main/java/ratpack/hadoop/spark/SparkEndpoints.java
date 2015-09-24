@@ -1,3 +1,18 @@
+/*
+ * Copyright 2013 the original author or authors.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *    http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 package ratpack.hadoop.spark;
 
 import org.slf4j.Logger;
@@ -6,7 +21,6 @@ import ratpack.func.Action;
 import ratpack.hadoop.spark.dto.Result;
 import ratpack.hadoop.spark.func.movierecommendation.MovieRecommendationService;
 import ratpack.hadoop.spark.func.movierecommendation.dto.Request;
-import ratpack.hadoop.spark.func.movierecommendation.model.MovieRecommendation;
 import ratpack.hadoop.spark.func.topn.TopNService;
 import ratpack.hadoop.spark.func.topn.dto.CalcTopN;
 import ratpack.handling.Chain;
@@ -42,7 +56,7 @@ public class SparkEndpoints implements Action<Chain> {
                 .onNull(() -> ctx.render(Integer.valueOf(-1)))
                 .then(ctn -> {
                   topNService
-                    .apply2(null, ctn.getLimit(), ctn.getTimeInterval(), "input", "output")
+                    .apply(null, ctn, "input", "output")
                     .map(Result::of)
                     .map(r -> json(r))
                     .then(ctx::render);
@@ -58,7 +72,7 @@ public class SparkEndpoints implements Action<Chain> {
                 .onNull(() -> ctx.render(Integer.valueOf(-1)))
                 .then(ctn -> {
                   topNService
-                    .apply2("TopN2", ctn.getLimit(), ctn.getTimeInterval(), "input", "output")
+                    .apply("TopN2", ctn, "input_all", "output")
                     .map(Result::of)
                     .map(r -> json(r))
                     .then(ctx::render);
@@ -74,7 +88,7 @@ public class SparkEndpoints implements Action<Chain> {
                 .then(req -> movieRecommendationService
                     .apply(req, "input_movie", "output_movie")
                     .map(Result::of)
-                    .map((r -> json(r)))
+                    .map(r -> json(r))
                     .then(ctx::render)
                 )
             )

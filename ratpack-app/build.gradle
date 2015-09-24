@@ -16,6 +16,7 @@ plugins {
   id "io.ratpack.ratpack-groovy" version "1.0.0"
   id "com.github.johnrengelman.shadow" version "1.2.2"
   id "idea"
+  id "checkstyle"
 }
 
 //----------------------------------------------------------------------------------------------------------------------
@@ -68,3 +69,15 @@ mainClassName = "ratpack.hadoop.spark.Main"
 
 //run.dependsOn([":spark-module-deps:installDist", ":spark-module-topn:installDist"])
 //run.mustRunAfter([":spark-module-deps:installDist", ":spark-module-topn:installDist"])
+
+// ---------------------------------------------------------------------------------------------------------------------
+// checkstyle
+// ---------------------------------------------------------------------------------------------------------------------
+
+def checkstyleConfigDir = new File(buildscript.sourceFile.parentFile, '../config/checkstyle')
+
+checkstyle {
+  configFile = new File(checkstyleConfigDir, "checkstyle.xml")
+  configProperties.checkstyleConfigDir = checkstyleConfigDir
+}
+
