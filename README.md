@@ -48,7 +48,7 @@ If we want to keep single node configuration bewteen master node restarts we can
 
 ## Import example access log data into the HDFS
 
-We assume that the current user is used as a hadoop user too. So create folder structure in hdfs directly. 
+We assume that the current user is hadoop's user too. So create folder structure in hdfs directly. 
 
     $ echo $USER
     $ hdfs dfs -mkdir -p /user/$USER/input
@@ -58,6 +58,17 @@ Import example access log data into the hdfs file system.
     $ cd spark-module-topn/src/test/resources/input
     $ hdfs dfs -copyFromLocal access*.log /user/$USER/input
 
+## Import example movie recommendation data into the HDFS
+
+We assume that the current user is hadoop's user too. So create folder structure in hdfs directly. 
+
+    $ echo $USER
+    $ hdfs dfs -mkdir -p /user/$USER/input_movie
+
+Import example movie recommendation data into the hdfs file system.
+
+    $ cd spark-module-movie-recommendation/src/test/resources/ml-latest-small
+    $ hdfs dfs -copyFromLocal *.csv /user/$USER/input_movie
 
 # Settings
 
@@ -132,11 +143,15 @@ Starting the server with building all dependencies:
 
     $ ./gradlew run
     
-Starting and executing the topN job:
+Starting and executing the **TopN** job:
 
     $ curl -XPOST -H "Content-Type: application/json" -d '{"limit": 11, "timeInterval": {"dateFrom": "2015-08-21", "dateTo": "2015-08-22"}}' http://localhost:5050/v1/spark/top
 
 Note, that the first execution of the job could take more time and, it is very important, blocks the other executions of the same job.
 This is, because initialization of Spark Job on the Spark server, deployment of the application in the claster takes some time.
 The next job executions should be much faster.
+
+Starting and executing the **MovieRecommendation** job:
+
+    $ curl -v -XPOST -H "Content-Type: application/json" -d '{"userId": 718, "limit": 10}' http://localhost:5050/v1/spark/movies
 
