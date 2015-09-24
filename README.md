@@ -158,3 +158,17 @@ Starting and executing the **MovieRecommendation** job:
 
     $ curl -v -XPOST -H "Content-Type: application/json" -d '{"userId": 718, "limit": 10}' http://localhost:5050/v1/spark/movies
 
+# Spark module/job interface
+
+Spark modules are gradle subprojects. They are java libraries (jars) with dependencies to `spark-core` and `spark-mlib`.
+Spark module has to provide a class with the following interface:
+
+    public static void runJob(Configuration configuration, JavaSparkContext sparkContext, Map<String, String> params, String inputPath, String outputPath) throws Exception;
+    
+`runJob` method implements the algorithm.
+    
+    public static List<List<String>> fetchJobResults(Configuration configuration, String outputPath) throws Exception;
+    
+`fetchJobResults` method fetches the results of `runJob` method execution.
+
+TODO: the module/job interface has to be improved.
