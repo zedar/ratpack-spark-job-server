@@ -15,6 +15,7 @@
  */
 package spark.func.movierecommendation;
 
+import com.google.common.base.Strings;
 import com.google.common.collect.Lists;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.*;
@@ -28,6 +29,7 @@ import org.apache.spark.mllib.recommendation.Rating;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import scala.Tuple2;
+import spark.jobserver.JobAPI;
 
 import java.io.BufferedReader;
 import java.io.InputStreamReader;
@@ -37,58 +39,91 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 /**
- * Calculation recommendation for the given user based on the set of recommendations.
+ * Calculate recommendation for the given user based on the set of recommendations.
  * Uses Machine Learning Library from Apache Spark
  */
-public class MovieRecommendationApp {
+public class MovieRecommendationApp implements JobAPI {
   private static final Logger LOGGER = LoggerFactory.getLogger(MovieRecommendationApp.class);
+
+  private static final String INPUT_DIR_ARG = "inputDir";
+  private static final String OUTPUT_DIR_ARG = "outputDir";
 
   private static final String RESULT_REGEX = "\\(Rating\\(([\\d]+),([\\d]+),([-+]?[0-9]*\\.?[0-9]+)\\),(.+)\\)";
   private static final Pattern RESULT_PATTERN = Pattern.compile(RESULT_REGEX);
 
-  public static void runJob(Configuration configuration, JavaSparkContext sparkContext, Map<String, String> params, String inputPath, String outputPath) throws Exception {
+  private JavaRDD<Rating> ratings;
+  private JavaPairRDD<Integer, String> items;
+  private MatrixFactorizationModel model;
+
+  @Override
+  public void beforeJob(Configuration configuration, JavaSparkContext sparkContext, Map<String, String> params) throws Exception {
+    LOGGER.info("BEFORE JOB STARTED");
     Objects.requireNonNull(params);
 
-    LOGGER.info("JOB STARTED");
-    LOGGER.debug("JOB PREPARE OUTPUT");
-    if (configuration != null) {
+    String inputDir = params.get(INPUT_DIR_ARG);
+    String outputDir = params.get(OUTPUT_DIR_ARG);
+
+    if (configuration != null && !Strings.isNullOrEmpty(outputDir)) {
       FileSystem fileSystem = FileSystem.get(configuration);
-      fileSystem.delete(new Path(outputPath), false);
+      fileSystem.delete(new Path(outputDir), false);
     }
 
-    // read user-item ratings and create Rating-s
-    JavaRDD<Rating> ratings = sparkContext.textFile(inputPath + "/ratings.csv")
-      .flatMap(s -> {
-        // skip header
-        if (s.contains("userId")) {
-          return Collections.emptyList();
-        } else {
-          String[] strings = s.split(",");
-          return Arrays.asList(new Rating(Integer.parseInt(strings[0]), Integer.parseInt(strings[1]), Double.parseDouble(strings[2])));
-        }
-      });
+    if (ratings == null) {
+      // read user-item ratings and create Rating-s and cache them
+      ratings = sparkContext.textFile(inputDir + "/ratings.csv")
+        .flatMap(s -> {
+          // skip header
+          if (s.contains("userId")) {
+            return Collections.emptyList();
+          } else {
+            String[] strings = s.split(",");
+            return Arrays.asList(new Rating(Integer.parseInt(strings[0]), Integer.parseInt(strings[1]), Double.parseDouble(strings[2])));
+          }
+        }).cache();
+    }
 
-    // read item description
-    JavaPairRDD<Integer, String> items = sparkContext.textFile(inputPath + "/movies.csv")
-      .<Integer, String>flatMapToPair(s -> {
-        // skip header
-        if (s.contains("movieId")) {
-          return Collections.emptyList();
-        } else {
-          String[] strings = s.split(",");
-          return Arrays.asList(new Tuple2<Integer, String>(Integer.parseInt(strings[0]), strings[1]));
-        }
-      });
+    // firstly train the recommendation model
+    if (model == null) {
+      Objects.requireNonNull(inputDir);
 
-    // build the recommendation model using Alternate Least Square Method
-    int rank = 10; // number of latent factors
-    int numOfIters = 5; // number of iterations to train the model
+      // build the recommendation model using Alternate Least Square Method
+      int rank = 10; // number of latent factors
+      int numOfIters = 5; // number of iterations to train the model
 
-    MatrixFactorizationModel model = ALS.trainImplicit(JavaRDD.toRDD(ratings), rank, numOfIters);
+      model = ALS.trainImplicit(JavaRDD.toRDD(ratings), rank, numOfIters);
+      LOGGER.info("BEFORE JOB MODEL TRAINED");
+    }
+    LOGGER.info("BEFORE JOB FINISHED");
+  }
 
-    // find movies not rated by the given user
+  @Override
+  public void runJob(Configuration configuration, JavaSparkContext sparkContext, Map<String, String> params) throws Exception {
+    LOGGER.info("RUN JOB STARTED");
+
+    Objects.requireNonNull(params);
+    if (model == null) {
+      beforeJob(configuration, sparkContext, params);
+    }
+
+    String inputDir = params.getOrDefault(INPUT_DIR_ARG, "input");
+    String outputDir = params.getOrDefault(OUTPUT_DIR_ARG, "output");
+
+    if (items == null) {
+      // read item description
+      items = sparkContext.textFile(inputDir + "/movies.csv")
+        .<Integer, String>flatMapToPair(s -> {
+          // skip header
+          if (s.contains("movieId")) {
+            return Collections.emptyList();
+          } else {
+            String[] strings = s.split(",");
+            return Arrays.asList(new Tuple2<Integer, String>(Integer.parseInt(strings[0]), strings[1]));
+          }
+        }).cache();
+    }
+
     Integer limit = Integer.parseInt(params.getOrDefault("limit", "10"));
-
+    // find movies not rated by the given user
     Integer uId = Integer.parseInt(params.getOrDefault("userId", "0"));
     Broadcast<Integer> userId = sparkContext.broadcast(uId);
 
@@ -108,17 +143,20 @@ public class MovieRecommendationApp {
 
     sparkContext
       .parallelize(recommendedItems.takeOrdered(limit, new RatingComparator()))
-      .saveAsTextFile(outputPath);
-
-    LOGGER.info("JOB FINISHED");
+      .saveAsTextFile(outputDir);
+    LOGGER.info("RUN JOB FINISHED");
   }
 
-  public static List<List<String>> fetchJobResults(Configuration configuration, String outputPath) throws Exception {
+  @Override
+  public List<List<String>> fetchResults(Configuration configuration, JavaSparkContext sparkContext, Map<String, String> params) throws Exception {
     if (configuration == null) {
       return Lists.newArrayList();
     }
+
+    String outputDir = params.getOrDefault(OUTPUT_DIR_ARG, "output");
+
     FileSystem fileSystem = FileSystem.get(configuration);
-    FileStatus[] status = fileSystem.listStatus(new Path(outputPath), new PathFilter() {
+    FileStatus[] status = fileSystem.listStatus(new Path(outputDir), new PathFilter() {
       @Override
       public boolean accept(Path path) {
         return path.getName().startsWith("part");
@@ -143,9 +181,31 @@ public class MovieRecommendationApp {
       is.close();
     }
 
-    fileSystem.delete(new Path(outputPath), true);
-
     return results;
+  }
+
+  @Override
+  public void afterJob(Configuration configuration, JavaSparkContext sparkContext, Map<String, String> params) throws Exception {
+    if (configuration == null) {
+      return;
+    }
+
+    String outputDir = params.getOrDefault(OUTPUT_DIR_ARG, "output");
+    FileSystem fileSystem = FileSystem.get(configuration);
+    fileSystem.delete(new Path(outputDir), true);
+  }
+
+  @Override
+  public void cleanUp() throws Exception {
+    if (ratings != null) {
+      ratings = null;
+    }
+    if (items != null) {
+      items = null;
+    }
+    if (model != null) {
+      model = null;
+    }
   }
 
   private static class RatingComparator implements Comparator<Tuple2<Rating, String>>, Serializable {

@@ -120,6 +120,8 @@ Even if it is possible to set property `spark.driver.allowMultipleContexts` to `
 
 That is the reason why containers share the `SparkContext` between all jobs and job requests.
 
+See the discussion [SPARK-2243](https://issues.apache.org/jira/browse/SPARK-2243).
+
 # Spark Job Container
 
 Apache Spark jobs are executed in their own containers, that share one/common instance of the `SparkContext`.

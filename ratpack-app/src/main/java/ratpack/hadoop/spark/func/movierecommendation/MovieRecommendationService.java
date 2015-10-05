@@ -30,6 +30,7 @@ import ratpack.hadoop.spark.func.movierecommendation.dto.Request;
 import ratpack.hadoop.spark.func.movierecommendation.model.MovieRecommendation;
 
 import java.util.List;
+import java.util.UUID;
 
 /**
  * Executes movie recommendation algorithm for the given user. Returns defined number of recommended movies
@@ -57,14 +58,17 @@ public class MovieRecommendationService {
     return containersService
       .getJobContainer("MovieRecommendation", sparkJobsConfig.getMovieRecommendationClassName())
       .flatMap(container -> {
-        String inputPath = config.getHDFSURI(Strings.isNullOrEmpty(inputFS) ? "input" : inputFS);
-        String outputPath = config.getHDFSURI(Strings.isNullOrEmpty(outputFS) ? "output" : outputFS);
+        String uuid = UUID.randomUUID().toString();
+        String inputDir = config.getHDFSURI(Strings.isNullOrEmpty(inputFS) ? "input" : inputFS);
+        String outputDir = config.getHDFSURI((Strings.isNullOrEmpty(outputFS) ? "output" : outputFS) + "-" + uuid);
         ImmutableMap<String, String> params = ImmutableMap.of(
           "userId", request.getUserId().toString(),
-          "limit", request.getLimit().getValue().toString());
+          "limit", request.getLimit().getValue().toString(),
+          "inputDir", inputDir,
+          "outputDir", outputDir);
         return container
-          .runJob(params, inputPath, outputPath)
-          .flatMap(uuid -> container.<List<List<String>>>fetchJobResults(outputPath, uuid));
+          .runJob(params)
+          .flatMap(result -> container.<List<List<String>>>fetchJobResults(params));
       })
       .map(results -> {
         List<MovieRecommendation> movieRecommendations = Lists.newArrayList();

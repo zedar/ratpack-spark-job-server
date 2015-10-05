@@ -50,6 +50,9 @@ dependencies {
   // Apache Spark core
   compile "org.apache.spark:spark-core_2.10:1.5.0"
 
+  // Job server API
+  compile "spark.job.server:spark-job-interface:0.1.0"
+
   testCompile 'junit:junit:4.12'
 }
 

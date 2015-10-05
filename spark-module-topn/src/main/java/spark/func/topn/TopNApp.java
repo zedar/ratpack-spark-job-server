@@ -25,6 +25,7 @@ import org.apache.spark.api.java.JavaSparkContext;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import scala.Tuple2;
+import spark.jobserver.JobAPI;
 
 import java.io.BufferedReader;
 import java.io.InputStreamReader;
@@ -38,13 +39,129 @@ import java.util.regex.Pattern;
 /**
  * Calculate the most active {@code N} users out of the access logs.
  */
-public class TopNApp {
+public class TopNApp implements JobAPI {
   private static final Logger LOGGER = LoggerFactory.getLogger(TopNApp.class);
+
+  private static final String INPUT_DIR_ARG = "inputDir";
+  private static final String OUTPUT_DIR_ARG = "outputDir";
+  private static final String LIMIT_ARG = "limit";
+  private static final String DATE_FROM_ARG = "dateFrom";
+  private static final String DATE_TO_ARG = "dateTo";
 
   private static final String USER_REGEX = "(username=')([A-Za-z0-9]{8}+)(')";
   private static final Pattern USER_PATTERN = Pattern.compile(USER_REGEX);
   private static final String TIME_AND_USER_REGEX = "^(\\[)([0-9]{2}\\/[A-Za-z]{3}\\/[0-9]{4})(.)+(username=')([A-Za-z0-9]{8}+)(')";
   private static final Pattern TIME_AND_USER_PATTERN = Pattern.compile(TIME_AND_USER_REGEX);
+
+  @Override
+  public void beforeJob(Configuration hadoopConfiguration, JavaSparkContext sparkContext, Map<String, String> params) throws Exception {
+    String outputDir = params.get(OUTPUT_DIR_ARG);
+
+    if (hadoopConfiguration != null && !Strings.isNullOrEmpty(outputDir)) {
+      FileSystem fileSystem = FileSystem.get(hadoopConfiguration);
+      fileSystem.delete(new Path(outputDir), false);
+    }
+  }
+
+  @Override
+  public void runJob(Configuration configuration, JavaSparkContext sparkContext, Map<String, String> params) throws Exception {
+    LOGGER.info("JOB STARTED");
+    String inputDir = params.getOrDefault(INPUT_DIR_ARG, "input");
+    String outputDir = params.getOrDefault(OUTPUT_DIR_ARG, "output");
+    Integer limit = Integer.valueOf(params.getOrDefault(LIMIT_ARG, "10"));
+    // broadcast the compiled pattern
+    //Broadcast<Pattern> timeAndUserPattern = sparkContext.broadcast(TIME_AND_USER_PATTERN);
+
+    // broadcast the date from and to across the cluster
+    //Broadcast<LocalDate> dateFrom = null, dateTo = null;
+    LocalDate df = null;
+    LocalDate dt = null;
+    if (!Strings.isNullOrEmpty(params.get(DATE_FROM_ARG))) {
+      df = LocalDate.parse(params.get(DATE_FROM_ARG));
+      //dateFrom = sparkContext.broadcast(df);
+    }
+    if (!Strings.isNullOrEmpty(params.get(DATE_TO_ARG))) {
+      dt = LocalDate.parse(params.get(DATE_TO_ARG));
+      //dateTo = sparkContext.broadcast(dt);
+    }
+    LocalDate dateFromFinal = df;
+    LocalDate dateToFinal = dt;
+    JavaPairRDD<String, Integer> pairRDD = sparkContext.textFile(inputDir)
+      .<String, Integer>flatMapToPair(s -> {
+        Matcher matcher = TIME_AND_USER_PATTERN.matcher(s);
+        if (matcher.find()) {
+          if (dateFromFinal != null || dateToFinal != null) {
+            String d = matcher.group(2);
+            LocalDate date = LocalDate.parse(d, DateTimeFormatter.ofPattern("dd/MMM/yyyy").withLocale(Locale.ENGLISH));
+            if (dateFromFinal != null && date.isBefore(dateFromFinal)) {
+              return Collections.emptyList();
+            }
+            if (dateToFinal != null && date.isAfter(dateToFinal)) {
+              return Collections.emptyList();
+            }
+          }
+          return Arrays.asList(new Tuple2<String, Integer>(matcher.group(5), 1));
+        } else {
+          return Collections.emptyList();
+        }
+      })
+      .reduceByKey(Integer::sum)
+      .cache();
+
+    LOGGER.debug("TOTAL COUNT FOR TopN: {}", pairRDD.count());
+
+    List<Tuple2<String, Integer>> result = pairRDD
+      .takeOrdered(limit, new ValueComparator());
+
+    sparkContext.parallelizePairs(result).saveAsTextFile(outputDir);
+
+    LOGGER.info("JOB FINISHED");
+  }
+
+  @Override
+  public List<List<String>> fetchResults(Configuration hadoopConfiguration, JavaSparkContext sparkContext, Map<String, String> params) throws Exception {
+    if (hadoopConfiguration == null) {
+      return Lists.newArrayList();
+    }
+    String outputDir = params.getOrDefault(OUTPUT_DIR_ARG, "output");
+    FileSystem fileSystem = FileSystem.get(hadoopConfiguration);
+    FileStatus[] status = fileSystem.listStatus(new Path(outputDir), new PathFilter() {
+      @Override
+      public boolean accept(Path path) {
+        return path.getName().startsWith("part");
+      }
+    });
+
+    List<List<String>> results = Lists.newArrayList();
+
+    for (int i = 0; i < status.length; i++) {
+      FSDataInputStream is = fileSystem.open(status[i].getPath());
+      BufferedReader br = new BufferedReader(new InputStreamReader(is));
+      String line = br.readLine();
+      while(line != null) {
+        String[] parts = line.replace("(", "").replace(")", "").split(",");
+        if (parts.length >= 2) {
+          LOGGER.debug("SPARK RESULT: {} {}", parts[0], parts[1]);
+          results.add(Lists.newArrayList(parts[0], parts[1]));
+        }
+        line = br.readLine();
+      }
+      is.close();
+    }
+
+    return results;
+  }
+
+  @Override
+  public void afterJob(Configuration hadoopConfiguration, JavaSparkContext sparkContext, Map<String, String> params) throws Exception {
+    if (hadoopConfiguration == null) {
+      return;
+    }
+
+    String outputDir = params.getOrDefault(OUTPUT_DIR_ARG, "output");
+    FileSystem fileSystem = FileSystem.get(hadoopConfiguration);
+    fileSystem.delete(new Path(outputDir), true);
+  }
 
   /**
    * The entry point for {@code Apache Spark} calculation.

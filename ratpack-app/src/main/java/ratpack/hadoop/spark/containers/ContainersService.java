@@ -31,6 +31,7 @@ import java.net.URLClassLoader;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.rmi.UnexpectedException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -140,11 +141,22 @@ public class ContainersService {
         }
 
         Class appClass = containersClassLoader.loadClass(jobClassName);
-        Method runJobMethod = appClass.getMethod("runJob", configurationClass, javaSparkContextClass, Map.class, String.class, String.class);
+        Method beforeJobMethod = appClass.getMethod("beforeJob", configurationClass, javaSparkContextClass, Map.class);
+        Method runJobMethod = appClass.getMethod("runJob", configurationClass, javaSparkContextClass, Map.class);
+        Method fetchJobResultsMethod = appClass.getMethod("fetchResults", configurationClass, javaSparkContextClass, Map.class);
+        Method afterJobMethod = appClass.getMethod("afterJob", configurationClass, javaSparkContextClass, Map.class);
+        Method cleanUpMethod = appClass.getMethod("cleanUp");
+        Class jobAPIClass = containersClassLoader.loadClass("spark.jobserver.JobAPI");
+        if (jobAPIClass.isAssignableFrom(appClass)) {
+          // create instance of the job
+          Object job = appClass.newInstance();
+          containers.put(jobCodeName, new Container(
+            containersClassLoader, hadoopConfiguration, javaSparkContext,
+            job, beforeJobMethod, runJobMethod, fetchJobResultsMethod, afterJobMethod, cleanUpMethod));
+        } else {
+          throw new UnexpectedException("Job does not support JobAPI interface");
+        }
 
-        Method fetchJobResultsMethod = appClass.getMethod("fetchJobResults", configurationClass, String.class);
-
-        containers.put(jobCodeName, new Container(containersClassLoader, hadoopConfiguration, javaSparkContext, runJobMethod, fetchJobResultsMethod));
 
       } finally {
         Thread.currentThread().setContextClassLoader(classLoader);

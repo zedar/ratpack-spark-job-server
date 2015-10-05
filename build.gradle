@@ -17,11 +17,16 @@ idea {
 //----------------------------------------------------------------------------------------------------------------------
 
 task run(dependsOn: [
+  ":spark-job-interface:install",
   ":spark-module-deps:installDist",
   ":spark-module-topn:installDist",
   ":spark-module-movie-recommendation:installDist",
   ":ratpack-app:run"])
-run.mustRunAfter([":spark-module-deps:installDist", ":spark-module-topn:installDist", ":spark-module-movie-recommendation:installDist"])
+run.mustRunAfter([
+  ":spark-job-interface:install",
+  ":spark-module-deps:installDist",
+  ":spark-module-topn:installDist",
+  ":spark-module-movie-recommendation:installDist"])
 
 // ---------------------------------------------------------------------------------------------------------------------
 // checkstyle

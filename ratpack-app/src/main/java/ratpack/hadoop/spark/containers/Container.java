@@ -54,6 +54,16 @@ public class Container {
   @Getter private Object javaSparkContext;
 
   /**
+   * The job instance implementing {@code  JobAPI} interface.
+   */
+  private Object job;
+
+  /**
+   * The method used to prepare job data, like training the model.
+   */
+  private Method beforeJobMethod;
+
+  /**
    * The method {@code runJob} used to execute the job
    */
   private Method runJobMethod;
@@ -64,49 +74,70 @@ public class Container {
   private Method fetchJobResultsMethod;
 
   /**
+   * The method {@code afterJob} used to clean temporary job results
+   */
+  private Method afterJobMethod;
+
+  /**
+   * The method used to clean all data allocated and referenced by the job.
+   */
+  private Method cleanUpMethod;
+
+  /**
    * Stops container resources: Java Spark Context
    * @throws Exception
    */
   public void stop() throws Exception {
+    if (cleanUpMethod != null) {
+      ClassLoader classLoader = Thread.currentThread().getContextClassLoader();
+      try {
+        Thread.currentThread().setContextClassLoader(jobClassLoader);
+        cleanUpMethod.invoke(job);
+      } finally {
+        Thread.currentThread().setContextClassLoader(classLoader);
+      }
+    }
   }
 
   /**
    * Run the job for the given parameters
-   * @param inputPath a path to HDFS/filesystem that contain input data
-   * @param outputPath a path to HDFS/filesystem that should contain output data postfixed with job's uuid
+   * @param params map of job parameters
    * @return the promise for job's uuid
    * @throws Exception any
    */
-  public Promise<String> runJob(ImmutableMap<String, String> params, String inputPath, String outputPath) {
+  public Promise<Void> runJob(ImmutableMap<String, String> params) {
     return Blocking.get(() -> {
-      String uuid = UUID.randomUUID().toString();
-
       ClassLoader classLoader = Thread.currentThread().getContextClassLoader();
       try {
         Thread.currentThread().setContextClassLoader(jobClassLoader);
-        runJobMethod.invoke(null, hadoopConfiguration, javaSparkContext, params, inputPath, outputPath + "-" + uuid);
+        if (beforeJobMethod != null) {
+          beforeJobMethod.invoke(job, hadoopConfiguration, javaSparkContext, params);
+        }
+        runJobMethod.invoke(job, hadoopConfiguration, javaSparkContext, params);
       } finally {
         Thread.currentThread().setContextClassLoader(classLoader);
       }
-
-      return uuid;
+      return null;
     });
   }
 
   /**
    * Fetch results of job execution in the form of {@code T} type.
-   * @param outputPath the path to look for the results. Either HDFS or filesystem path posfixed with uuid
-   * @param uuid a unique id of the job
+   * @param params list of job parameters
    * @param <T> a data type containing job results
    * @return the promise for the job results
    * @throws Exception any
    */
-  public <T> Promise<T> fetchJobResults(String outputPath, String uuid) {
+  public <T> Promise<T> fetchJobResults(ImmutableMap<String, String> params) {
     return Blocking.get(() -> {
       ClassLoader classLoader = Thread.currentThread().getContextClassLoader();
       try {
         Thread.currentThread().setContextClassLoader(jobClassLoader);
-        return (T)fetchJobResultsMethod.invoke(null, hadoopConfiguration, outputPath+ "-" + uuid);
+        T result = (T)fetchJobResultsMethod.invoke(job, hadoopConfiguration, javaSparkContext, params);
+        if (afterJobMethod != null) {
+          afterJobMethod.invoke(job, hadoopConfiguration, javaSparkContext, params);
+        }
+        return result;
       } finally {
         Thread.currentThread().setContextClassLoader(classLoader);
       }

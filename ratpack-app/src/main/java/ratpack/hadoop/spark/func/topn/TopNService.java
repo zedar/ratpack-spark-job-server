@@ -30,6 +30,7 @@ import ratpack.hadoop.spark.func.topn.dto.CalcTopN;
 import ratpack.hadoop.spark.func.topn.model.UserActivityCounter;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.UUID;
 
 /**
  * Executes Top-N algorithm with Apache Spark
@@ -60,15 +61,18 @@ public class TopNService {
     return containersService
       .getJobContainer(Strings.isNullOrEmpty(jobName) ? "TopN" : jobName, sparkJobsConfig.getTopNClassName())
       .flatMap(container -> {
-        String inputPath = config.getHDFSURI(Strings.isNullOrEmpty(inputFS) ? "input" : inputFS);
-        String outputPath = config.getHDFSURI(Strings.isNullOrEmpty(outputFS) ? "output" : outputFS);
+        String uuid = UUID.randomUUID().toString();
+        String inputDir = config.getHDFSURI(Strings.isNullOrEmpty(inputFS) ? "input" : inputFS);
+        String outputDir = config.getHDFSURI((Strings.isNullOrEmpty(outputFS) ? "output" : outputFS) + "-" + uuid);
         ImmutableMap<String, String> params = ImmutableMap.of(
           "limit", request.getLimit().getValue().toString(),
           "dateFrom", request.getTimeInterval() != null && request.getTimeInterval().getDateFrom() != null ? request.getTimeInterval().getDateFrom().toString() : "",
-          "dateTo",   request.getTimeInterval() != null && request.getTimeInterval().getDateTo() != null ? request.getTimeInterval().getDateTo().toString() : "");
+          "dateTo",   request.getTimeInterval() != null && request.getTimeInterval().getDateTo() != null ? request.getTimeInterval().getDateTo().toString() : "",
+          "inputDir", inputDir,
+          "outputDir", outputDir);
         return container
-          .runJob(params, inputPath, outputPath)
-          .flatMap(uuid -> container.<List<List<String>>>fetchJobResults(outputPath, uuid));
+          .runJob(params)
+          .flatMap(result -> container.<List<List<String>>>fetchJobResults(params));
       })
       .map(results -> {
         ArrayList<UserActivityCounter> userActivityCounters = Lists.newArrayList();

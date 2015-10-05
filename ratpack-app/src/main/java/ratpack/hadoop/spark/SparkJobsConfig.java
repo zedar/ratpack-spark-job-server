@@ -28,10 +28,29 @@ import java.util.Objects;
 @NoArgsConstructor
 @ToString
 public class SparkJobsConfig {
+  private String jobApiClassName;
   private String topNJarsDir;
   private String topNClassName;
   private String movieRecommendationJarsDir;
   private String movieRecommendationClassName;
+
+  /**
+   * The full class name of the {@code JobAPI} interface.
+   * @return the full class name of the JobAPI interface
+   */
+  public String getJobApiClassName() {
+    return jobApiClassName;
+  }
+
+  /**
+   * Sets the full class name of the {@code JobAPI} interface
+   * @param jobApiClassName full class name of the JobAPI interface
+   * @return this
+   */
+  public SparkJobsConfig jobApiClassName(String jobApiClassName) {
+    this.jobApiClassName = jobApiClassName;
+    return this;
+  }
 
   /**
    * The path to folder with jars containing TopN algorithm. In Apache Spark convention
@@ -120,8 +139,9 @@ public class SparkJobsConfig {
    * @return the arrays of class names
    */
   public String[] getClassNames() {
+    Objects.requireNonNull(jobApiClassName);
     Objects.requireNonNull(topNClassName);
     Objects.requireNonNull(movieRecommendationClassName);
-    return Lists.newArrayList(topNClassName, movieRecommendationClassName).toArray(new String[]{});
+    return Lists.newArrayList(jobApiClassName, topNClassName, movieRecommendationClassName).toArray(new String[]{});
   }
 }
