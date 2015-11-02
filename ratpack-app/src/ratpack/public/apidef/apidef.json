@@ -1,0 +1,211 @@
+{
+    "swagger": "2.0",
+    "info": {
+        "version": "0.0.1",
+        "title": "Spark Server API",
+        "description": "Run Apache Spark jobs synchronously or asynchronously."
+    },
+    "paths": {
+        "/v1/job/exec/sync": {
+            "post": {
+                "description": "Execute Spark job, block and wait for the result.\nIf job is not initialized all subsequent calls have to wait.\n",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "parameters": [
+                    {
+                        "name": "body",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "type": "object",
+                            "properties": {
+                                "job": {
+                                    "$ref": "#/definitions/Job"
+                                }
+                            }
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Job executed and returned a data",
+                        "schema": {
+                            "type": "object",
+                            "properties": {
+                                "id": {
+                                    "$ref": "#/definitions/JobId"
+                                },
+                                "result": {
+                                    "$ref": "#/definitions/JobResult"
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Job failed",
+                        "schema": {
+                            "$ref": "#/definitions/Result"
+                        }
+                    }
+                }
+            }
+        },
+        "/v1/job/exec/async": {
+            "post": {
+                "description": "Execute Spark job in background. Return job id imediatelly.\nIf job is not initialized all subsequent calls have to wait.\n",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "parameters": [
+                    {
+                        "name": "body",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "type": "object",
+                            "properties": {
+                                "job": {
+                                    "$ref": "#/definitions/Job"
+                                }
+                            }
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Job registered for execution",
+                        "schema": {
+                            "type": "object",
+                            "properties": {
+                                "id": {
+                                    "$ref": "#/definitions/JobId"
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Job failed",
+                        "schema": {
+                            "$ref": "#/definitions/Result"
+                        }
+                    }
+                }
+            }
+        },
+        "/v1/jobs/{job_id}": {
+            "get": {
+                "description": "Get job's execution status\n",
+                "produces": [
+                    "application/json"
+                ],
+                "parameters": [
+                    {
+                        "name": "job_id",
+                        "in": "path",
+                        "type": "string",
+                        "description": "A job id",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "The job's current status",
+                        "schema": {
+                            "properties": {
+                                "status": {
+                                    "type": "string"
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Job failed",
+                        "schema": {
+                            "$ref": "#/definitions/Result"
+                        }
+                    }
+                }
+            }
+        }
+    },
+    "definitions": {
+        "Param": {
+            "type": "object",
+            "properties": {
+                "name": {
+                    "type": "string"
+                },
+                "value": {
+                    "type": "string"
+                }
+            }
+        },
+        "Value": {
+            "type": "object",
+            "properties": {
+                "name": {
+                    "type": "string"
+                },
+                "value": {
+                    "type": "string"
+                }
+            }
+        },
+        "JobId": {
+            "description": "Unique identifier of a job\n",
+            "type": "string"
+        },
+        "Job": {
+            "description": "A collection of parameters describing job type and its input parameters\n",
+            "type": "object",
+            "properties": {
+                "mainClassName": {
+                    "type": "string"
+                },
+                "params": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/Param"
+                    }
+                }
+            }
+        },
+        "JobResult": {
+            "description": "A result of job execution\n",
+            "type": "object",
+            "properties": {
+                "values": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/Value"
+                    }
+                }
+            }
+        },
+        "Result": {
+            "description": "An error of job execution\n",
+            "type": "object",
+            "properties": {
+                "code": {
+                    "type": "string",
+                    "description": "error code"
+                },
+                "message": {
+                    "type": "string",
+                    "description": "error message"
+                },
+                "description": {
+                    "type": "string",
+                    "description": "longer error description"
+                }
+            }
+        }
+    }
+}

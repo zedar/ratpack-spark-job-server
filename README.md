@@ -158,8 +158,8 @@ The next job executions should be much faster.
 
 Starting and executing the **MovieRecommendation** job:
 
-    $ curl -v -XPOST -H "Content-Type: application/json" -d '{"userId": 718, "limit": 10}' http://localhost:5050/v1/spark/movies
-
+        $ curl -v -XPOST -H "Content-Type: application/json" -d '{"userId": 718, "limit": 10}' http://localhost:5050/v1/spark/movies
+    
 # Spark module/job interface
 
 Spark modules are gradle subprojects. They are java libraries (jars) with dependencies to `spark-core` and `spark-mlib`.

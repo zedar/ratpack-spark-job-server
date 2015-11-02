@@ -26,6 +26,7 @@ import org.apache.spark.broadcast.Broadcast;
 import org.apache.spark.mllib.recommendation.ALS;
 import org.apache.spark.mllib.recommendation.MatrixFactorizationModel;
 import org.apache.spark.mllib.recommendation.Rating;
+import org.apache.spark.scheduler.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import scala.Tuple2;
@@ -55,11 +56,83 @@ public class MovieRecommendationApp implements JobAPI {
   private JavaPairRDD<Integer, String> items;
   private MatrixFactorizationModel model;
 
+  private static class Listener implements SparkListener {
+    @Override
+    public void onStageCompleted(SparkListenerStageCompleted stageCompleted) {
+    }
+
+    @Override
+    public void onApplicationStart(SparkListenerApplicationStart applicationStart) {
+      LOGGER.debug("JOBSERVER: START");
+    }
+
+    @Override
+    public void onJobStart(SparkListenerJobStart jobStart) {
+    }
+
+    @Override
+    public void onBlockManagerRemoved(SparkListenerBlockManagerRemoved blockManagerRemoved) {
+    }
+
+    @Override
+    public void onExecutorRemoved(SparkListenerExecutorRemoved executorRemoved) {
+    }
+
+    @Override
+    public void onUnpersistRDD(SparkListenerUnpersistRDD unpersistRDD) {
+    }
+
+    @Override
+    public void onTaskGettingResult(SparkListenerTaskGettingResult taskGettingResult) {
+    }
+
+    @Override
+    public void onExecutorAdded(SparkListenerExecutorAdded executorAdded) {
+    }
+
+    @Override
+    public void onBlockUpdated(SparkListenerBlockUpdated blockUpdated) {
+    }
+
+    @Override
+    public void onEnvironmentUpdate(SparkListenerEnvironmentUpdate environmentUpdate) {
+    }
+
+    @Override
+    public void onTaskEnd(SparkListenerTaskEnd taskEnd) {
+    }
+
+    @Override
+    public void onBlockManagerAdded(SparkListenerBlockManagerAdded blockManagerAdded) {
+    }
+
+    @Override
+    public void onApplicationEnd(SparkListenerApplicationEnd applicationEnd) {
+      LOGGER.debug("JOBSERVER: END");
+    }
+
+    @Override
+    public void onTaskStart(SparkListenerTaskStart taskStart) {
+    }
+
+    @Override
+    public void onExecutorMetricsUpdate(SparkListenerExecutorMetricsUpdate executorMetricsUpdate) {
+    }
+
+    @Override
+    public void onStageSubmitted(SparkListenerStageSubmitted stageSubmitted) {
+    }
+
+    @Override
+    public void onJobEnd(SparkListenerJobEnd jobEnd) {
+    }
+  }
   @Override
   public void beforeJob(Configuration configuration, JavaSparkContext sparkContext, Map<String, String> params) throws Exception {
     LOGGER.info("BEFORE JOB STARTED");
     Objects.requireNonNull(params);
 
+    sparkContext.sc().addSparkListener(new Listener());
     String inputDir = params.get(INPUT_DIR_ARG);
     String outputDir = params.get(OUTPUT_DIR_ARG);
 

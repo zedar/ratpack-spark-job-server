@@ -5,3 +5,4 @@
 **/*.iws
 **/*.idea
 .gradle
+ratpack-app/logs

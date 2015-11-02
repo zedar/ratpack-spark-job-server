@@ -61,7 +61,7 @@ dependencies {
 // Application starting point
 //----------------------------------------------------------------------------------------------------------------------
 
-mainClassName = "ratpack.hadoop.spark.Main"
+mainClassName = "ratpack.spark.jobserver.Main"
 
 //----------------------------------------------------------------------------------------------------------------------
 // Task dependencies
