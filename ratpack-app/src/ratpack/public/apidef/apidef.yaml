@@ -4,7 +4,7 @@ info:
   title: Spark Server API
   description: Run Apache Spark jobs synchronously or asynchronously.
 paths:
-  /v1/jobs:
+  /v1/spark/jobs:
     post:
       description: |
         Execute Spark job, either as blocking (SYNC) call or in background (ASYNC) - without waiting for the result.
@@ -31,7 +31,7 @@ paths:
           description: Job failed
           schema:
             $ref: '#/definitions/Result'
-  '/v1/jobs/{job_id}':
+  '/v1/spark/jobs/{job_id}':
     get:
       description: |
         Get job's execution status

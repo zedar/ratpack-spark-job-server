@@ -65,15 +65,6 @@ public class Main {
               ctx.next();
             })
             .prefix("v1", chain1 -> chain1
-                .get("api-def", ctx -> {
-                  LOGGER.debug("GET API_DEF.JSON");
-                  SparkJobsConfig config = ctx.get(SparkJobsConfig.class);
-                  LOGGER.debug("SPARK JOBS CONFIG: " + config.toString());
-                  ctx.render(ctx.file("public/apidef/apidef.json"));
-                })
-                .prefix("spark", SparkEndpoints.class)
-            )
-            .prefix("v2", chain1 -> chain1
               .all(RequestLogger.ncsa())
               .get("api-def", ctx -> {
                 LOGGER.debug("GET API_DEF.JSON");

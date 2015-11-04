@@ -141,7 +141,7 @@ Algorithm uses Spark MLib (Machine Learning Library) and finds the best movies f
 
 * Module: **ratpack-app**: the server with endpoints to execute Spark jobs
 
-Every Spark job is executed in seperate `Container`. There is a hirarchy of class loaders. The common (root) class loader 
+Every Spark job is executed in separate `Container`. There is a hirarchy of class loaders. The common (root) class loader 
 with all Apache Spark dependencies. Every `Container` has its own class loader with common (root) set as parent.
 
 Starting the server with building all dependencies:
@@ -150,7 +150,7 @@ Starting the server with building all dependencies:
     
 Starting and executing the **TopN** job:
 
-    $ curl -XPOST -H "Content-Type: application/json" -d '{"mode": "SYNC", "codeName": "TOPN", "params": [{"name": "inputDir", "value": "/user/zedar/input"}, {"name": "outputDir", "value": "/user/zedar/output"}, {"name": "limit", "value": 11}]}' http://localhost:5050/v2/spark/jobs
+    $ curl -XPOST -H "Content-Type: application/json" -d '{"mode": "SYNC", "codeName": "TOPN", "params": [{"name": "inputDir", "value": "/user/zedar/input"}, {"name": "outputDir", "value": "/user/zedar/output"}, {"name": "limit", "value": 5}, {"name": "dateFrom", "value": "2015-07-13"}, {"name": "dateTo", "value": "2015-11-30"}]}' http://localhost:5050/v1/spark/jobs
 
 Note, that the first execution of the job could take more time and, it is very important, blocks the other executions of the same job.
 This is, because initialization of Spark Job on the Spark server, deployment of the application in the claster takes some time.
@@ -158,12 +158,25 @@ The next job executions should be much faster.
 
 Starting and executing the **MovieRecommendation** job:
 
-    $ curl -XPOST -H "Content-Type: application/json" -d '{"mode": "SYNC", "codeName": "MOVIEREC", "params": [{"name": "inputDir", "value": "/user/zedar/input_movie"}, {"name": "outputDir", "value": "/user/zedar/output_movie"}, {"name": "userId", "value": 12}, {"name": "limit", "value": 15}]}' http://localhost:5050/v2/spark/jobs
+    $ curl -XPOST -H "Content-Type: application/json" -d '{"mode": "SYNC", "codeName": "MOVIEREC", "params": [{"name": "inputDir", "value": "/user/zedar/input_movie"}, {"name": "outputDir", "value": "/user/zedar/output_movie"}, {"name": "userId", "value": 12}, {"name": "limit", "value": 15}]}' http://localhost:5050/v1/spark/jobs
     
 Starting and executing any of the registered jobs:
 
-    $ curl -v -XPOST -H "Content-Type: application/json" -d '{"mode": "SYNC", "codeName": "TOPN", "params":[{"name": "name1", "value": "value1"}]}' http://localhost:5050/v2/spark/jobs
+    $ curl -v -XPOST -H "Content-Type: application/json" -d '{"mode": "SYNC", "codeName": "TOPN", "params":[{"name": "name1", "value": "value1"}]}' http://localhost:5050/v1/spark/jobs
     
+# API
+
+## (/v1/spark/jobs) Execute spark job
+
+  Method: `POST`  
+  Endpoint: `/v1/spark/jobs`
+
+## (/v1/spark/jobs/{job_id}) Get job status
+
+  Method: `GET`  
+  Endpoint: `/v1/spark/jobs/{job_id}`
+
+
 # Spark module/job interface
 
 Spark modules are gradle subprojects. They are java libraries (jars) with dependencies to `spark-core` and `spark-mlib`.
