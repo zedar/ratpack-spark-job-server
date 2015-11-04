@@ -34,6 +34,17 @@ public class JobsEndpoints implements Action<Chain> {
   @Override
   public void execute(Chain chain) throws Exception {
     chain
+      .path("jobs/:job_id", ctx -> {
+        String jobId = ctx.getPathTokens().get("job_id");
+        LOGGER.debug("GET JOB id: {}", jobId);
+        ctx.byMethod(spec -> spec
+          .get(() -> jobsService.get(jobId)
+            .map(Result::of)
+            .map(r -> json(r))
+            .then(ctx::render)
+          )
+        );
+      })
       .path("jobs", ctx -> {
         SparkJobsConfig config = ctx.get(SparkJobsConfig.class);
         LOGGER.debug("SPARK CONFIGS: " + config.toString());

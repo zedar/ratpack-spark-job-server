@@ -21,6 +21,7 @@ import com.google.inject.Scopes;
 import ratpack.spark.jobserver.containers.ContainersService;
 import ratpack.spark.jobserver.jobs.JobsEndpoints;
 import ratpack.spark.jobserver.jobs.JobsService;
+import ratpack.spark.jobserver.jobs.model.JobsRepository;
 
 import javax.inject.Singleton;
 
@@ -31,6 +32,7 @@ public class SparkModule extends AbstractModule {
 
   @Override
   protected void configure() {
+    bind(JobsRepository.class).in(Scopes.SINGLETON);
     bind(JobsEndpoints.class).in(Scopes.SINGLETON);
   }
 
@@ -43,7 +45,7 @@ public class SparkModule extends AbstractModule {
    */
   @Provides
   @Singleton
-  public JobsService jobsService(final SparkConfig sparkConfig, final SparkJobsConfig sparkJobsConfig, final ContainersService containersService) {
-    return new JobsService(sparkConfig, sparkJobsConfig, containersService);
+  public JobsService jobsService(final SparkConfig sparkConfig, final SparkJobsConfig sparkJobsConfig, final ContainersService containersService, final JobsRepository jobsRepository) {
+    return new JobsService(sparkConfig, sparkJobsConfig, containersService, jobsRepository);
   }
 }

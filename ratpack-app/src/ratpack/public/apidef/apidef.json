@@ -65,11 +65,7 @@
                     "200": {
                         "description": "The job's current status",
                         "schema": {
-                            "properties": {
-                                "status": {
-                                    "type": "string"
-                                }
-                            }
+                            "$ref": "#/definitions/Result"
                         }
                     },
                     "400": {

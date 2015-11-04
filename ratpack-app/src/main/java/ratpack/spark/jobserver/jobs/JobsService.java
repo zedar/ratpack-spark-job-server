@@ -10,10 +10,7 @@ import ratpack.spark.jobserver.SparkConfig;
 import ratpack.spark.jobserver.SparkJobsConfig;
 import ratpack.spark.jobserver.containers.ContainersService;
 import ratpack.spark.jobserver.jobs.dto.JobRequest;
-import ratpack.spark.jobserver.jobs.model.JobExecMode;
-import ratpack.spark.jobserver.jobs.model.JobExecStatus;
-import ratpack.spark.jobserver.jobs.model.JobParam;
-import ratpack.spark.jobserver.jobs.model.JobValues;
+import ratpack.spark.jobserver.jobs.model.*;
 
 import java.util.List;
 import java.util.Objects;
@@ -28,25 +25,33 @@ public class JobsService {
   private final SparkConfig sparkConfig;
   private final SparkJobsConfig sparkJobsConfig;
   private final ContainersService containersService;
+  private final JobsRepository jobsRepository;
 
   /**
    * The constructor
    * @param sparkConfig Spark configuration defined in {@code application.properties} file
    * @param sparkJobsConfig Jobs configuration defined in {@code sparkjobs.properties} file
-   * @param containersService a service able to run Spark jobs in separate container.
+   * @param containersService a service able to apply Spark jobs in separate container.
    */
-  public JobsService(final SparkConfig sparkConfig, final SparkJobsConfig sparkJobsConfig, final ContainersService containersService) {
+  public JobsService(final SparkConfig sparkConfig, final SparkJobsConfig sparkJobsConfig, final ContainersService containersService, final JobsRepository jobsRepository) {
     this.sparkConfig = sparkConfig;
     this.sparkJobsConfig = sparkJobsConfig;
     this.containersService = containersService;
+    this.jobsRepository = jobsRepository;
   }
 
-  public Promise<Result<JobValues>> apply(final JobRequest jobRequest) {
+  /**
+   * Execute spark job defined by {@code jobRequest}
+   * @param jobRequest data transfer object defining job execution criteria
+   * @return the promise for job execution result
+   * @throws Exception any
+   */
+  public Promise<Result<Job>> apply(final JobRequest jobRequest) throws Exception{
     Objects.requireNonNull(jobRequest.getMode());
     Objects.requireNonNull(jobRequest.getCodeName());
     return containersService
       .getJobContainer(jobRequest.getCodeName(), sparkJobsConfig.getJobs().get(jobRequest.getCodeName()))
-      .<JobValues>flatMap(container -> {
+      .<Job>flatMap(container -> {
         UUID uuid = UUID.randomUUID();
         ImmutableMap<String, String> params = ImmutableMap.<String, String>builder()
           .put("jobId", uuid.toString())
@@ -58,19 +63,41 @@ public class JobsService {
             .runJob(params)
             .flatMap(result -> container
               .<List<List<String>>>fetchJobResults(params)
-              .map(values -> JobValues.of(uuid, JobExecStatus.FINISHED, JobValues.JobValue.to(values))));
+              .map(values -> Job.of(uuid, JobExecStatus.FINISHED, Job.JobValue.to(values))))
+            .flatMap(job -> jobsRepository.saveJob(job));
         } else {
           // execute job in background
           Execution.fork().start(forkedExec -> {
             container
               .runJob(params)
-              .then(result -> {
-                LOGGER.debug("JOB [{}] FINISHED", uuid.toString());
+              .flatMap(result -> jobsRepository
+                  .findJob(uuid.toString())
+                  .onNull(() -> Result.error(new IllegalArgumentException("JOB NOT REGISTERED id: " + uuid.toString())))
+                  .map(job -> job.jobStatus(JobExecStatus.FINISHED))
+              )
+              .then(job -> {
+                LOGGER.debug("ASYNC EXECUTION: JOB [{}]", job.toString());
               });
           });
-          return Promise.value(JobValues.of(uuid, JobExecStatus.WORKING));
+          return Promise
+            .value(Job.of(uuid, JobExecStatus.WORKING))
+            .flatMap(job -> jobsRepository.saveJob(job));
         }
       })
+      .map(Result::success);
+  }
+
+  /**
+   * Get job by its id
+   * @param jobId registed job id
+   * @return the promise for result of job execution
+   * @throws Exception any
+   */
+  public Promise<Result<Job>> get(final String jobId) throws Exception {
+    Objects.requireNonNull(jobId);
+    return jobsRepository
+      .findJob(jobId)
+      .onNull(() -> Result.error(new IllegalArgumentException("JOB UNDEFINED id: " + jobId)))
       .map(Result::success);
   }
 }

@@ -14,7 +14,7 @@ import java.util.UUID;
 @ToString
 @AllArgsConstructor
 @JsonInclude(JsonInclude.Include.NON_NULL)
-public class JobValues {
+public class Job {
   /**
    * Unique job identifier.
    *
@@ -44,7 +44,7 @@ public class JobValues {
    * @param jobId an identifier of a job
    * @return this
    */
-  public JobValues jobId(final String jobId) {
+  public Job jobId(final String jobId) {
     this.jobId = jobId;
     return this;
   }
@@ -54,8 +54,18 @@ public class JobValues {
    * @param uuid globally unique identifier
    * @return this
    */
-  public JobValues jobId(final UUID uuid) {
+  public Job jobId(final UUID uuid) {
     this.jobId = uuid.toString();
+    return this;
+  }
+
+  /**
+   * Sets job's execution status.
+   * @param jobStatus new job status
+   * @return this
+   */
+  public Job jobStatus(JobExecStatus jobStatus) {
+    this.jobStatus = jobStatus;
     return this;
   }
 
@@ -64,7 +74,7 @@ public class JobValues {
    * @param value a single job value entry
    * @return this
    */
-  public JobValues addValue(final JobValue value) {
+  public Job addValue(final JobValue value) {
     if (values == null) {
       values = Lists.newArrayList();
     }
@@ -77,7 +87,7 @@ public class JobValues {
    * @param value a single job value entry
    * @return this
    */
-  public JobValues addValue(final List<String> value) {
+  public Job addValue(final List<String> value) {
     return addValue(JobValue.of(value));
   }
 
@@ -86,8 +96,8 @@ public class JobValues {
    * @param uuid unique identifier of the job
    * @return job values
    */
-  public static JobValues of(final UUID uuid, final JobExecStatus status) {
-    return new JobValues(uuid.toString(), status, null);
+  public static Job of(final UUID uuid, final JobExecStatus status) {
+    return new Job(uuid.toString(), status, null);
   }
 
   /**
@@ -96,8 +106,8 @@ public class JobValues {
    * @param values list of pairs of name/value
    * @return job values
    */
-  public static JobValues of(final UUID uuid, final JobExecStatus status, final List<JobValue> values) {
-    return new JobValues(uuid.toString(), status, values);
+  public static Job of(final UUID uuid, final JobExecStatus status, final List<JobValue> values) {
+    return new Job(uuid.toString(), status, values);
   }
 
   /**

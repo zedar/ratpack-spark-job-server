@@ -68,8 +68,8 @@ mainClassName = "ratpack.spark.jobserver.Main"
 // Task dependencies
 //----------------------------------------------------------------------------------------------------------------------
 
-//run.dependsOn([":spark-module-deps:installDist", ":spark-module-topn:installDist"])
-//run.mustRunAfter([":spark-module-deps:installDist", ":spark-module-topn:installDist"])
+//apply.dependsOn([":spark-module-deps:installDist", ":spark-module-topn:installDist"])
+//apply.mustRunAfter([":spark-module-deps:installDist", ":spark-module-topn:installDist"])
 
 // ---------------------------------------------------------------------------------------------------------------------
 // checkstyle
