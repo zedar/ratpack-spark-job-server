@@ -24,6 +24,7 @@ import ratpack.spark.jobserver.func.movierecommendation.dto.Request;
 import ratpack.spark.jobserver.func.topn.TopNService;
 import ratpack.spark.jobserver.func.topn.dto.CalcTopN;
 import ratpack.handling.Chain;
+import ratpack.spark.jobserver.jobs.JobsEndpoints;
 
 import javax.inject.Inject;
 
@@ -61,7 +62,7 @@ public class SparkEndpoints implements Action<Chain> {
                     .map(r -> json(r))
                     .then(ctx::render);
                 });
-          })
+            })
         );
       })
       .path("top2", ctx -> {

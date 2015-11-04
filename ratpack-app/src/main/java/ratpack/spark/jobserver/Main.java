@@ -20,6 +20,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.slf4j.MDC;
 import ratpack.guice.Guice;
+import ratpack.handling.RequestLogger;
 import ratpack.spark.jobserver.containers.ContainersLifecycle;
 import ratpack.spark.jobserver.containers.ContainersModule;
 import ratpack.handling.RequestId;
@@ -27,6 +28,7 @@ import ratpack.handling.ResponseTimer;
 import ratpack.handling.internal.UuidBasedRequestIdGenerator;
 import ratpack.server.BaseDir;
 import ratpack.server.RatpackServer;
+import ratpack.spark.jobserver.jobs.JobsEndpoints;
 
 /**
  * Starting point for the Apacke Spark jobs. Working with hadoop HDFS (distributed file system).
@@ -66,10 +68,20 @@ public class Main {
                 .get("api-def", ctx -> {
                   LOGGER.debug("GET API_DEF.JSON");
                   SparkJobsConfig config = ctx.get(SparkJobsConfig.class);
-                  LOGGER.debug("JOBS PATHS: " + config.getJarPaths());
+                  LOGGER.debug("SPARK JOBS CONFIG: " + config.toString());
                   ctx.render(ctx.file("public/apidef/apidef.json"));
                 })
                 .prefix("spark", SparkEndpoints.class)
+            )
+            .prefix("v2", chain1 -> chain1
+              .all(RequestLogger.ncsa())
+              .get("api-def", ctx -> {
+                LOGGER.debug("GET API_DEF.JSON");
+                SparkJobsConfig config = ctx.get(SparkJobsConfig.class);
+                LOGGER.debug("SPARK JOBS CONFIG: " + config.toString());
+                ctx.render(ctx.file("public/apidef/apidef.json"));
+              })
+              .prefix("spark", JobsEndpoints.class)
             )
         )
     );

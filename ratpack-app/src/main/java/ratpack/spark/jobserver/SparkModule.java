@@ -21,6 +21,8 @@ import com.google.inject.Scopes;
 import ratpack.spark.jobserver.containers.ContainersService;
 import ratpack.spark.jobserver.func.movierecommendation.MovieRecommendationService;
 import ratpack.spark.jobserver.func.topn.TopNService;
+import ratpack.spark.jobserver.jobs.JobsEndpoints;
+import ratpack.spark.jobserver.jobs.JobsService;
 
 import javax.inject.Singleton;
 
@@ -32,6 +34,20 @@ public class SparkModule extends AbstractModule {
   @Override
   protected void configure() {
     bind(SparkEndpoints.class).in(Scopes.SINGLETON);
+    bind(JobsEndpoints.class).in(Scopes.SINGLETON);
+  }
+
+  /**
+   * Provides {@link JobsService}, executing any job in SYNC or ASYNC mode.
+   * @param sparkConfig HDFS and Apache Spark configuration settings
+   * @param sparkJobsConfig a configuration of jobs
+   * @param containersService a service for job containers
+   * @return the singleton instance of the {@link JobsService} implementation
+   */
+  @Provides
+  @Singleton
+  public JobsService jobsService(final SparkConfig sparkConfig, final SparkJobsConfig sparkJobsConfig, final ContainersService containersService) {
+    return new JobsService(sparkConfig, sparkJobsConfig, containersService);
   }
 
   /**

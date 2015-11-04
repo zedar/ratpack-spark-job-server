@@ -150,7 +150,7 @@ Starting the server with building all dependencies:
     
 Starting and executing the **TopN** job:
 
-    $ curl -XPOST -H "Content-Type: application/json" -d '{"limit": 11, "timeInterval": {"dateFrom": "2015-08-21", "dateTo": "2015-08-22"}}' http://localhost:5050/v1/spark/top
+    $ curl -XPOST -H "Content-Type: application/json" -d '{"mode": "SYNC", "codeName": "TOPN", "params": [{"name": "inputDir", "value": "/user/zedar/input"}, {"name": "outputDir", "value": "/user/zedar/output"}, {"name": "limit", "value": 11}]}' http://localhost:5050/v2/spark/jobs
 
 Note, that the first execution of the job could take more time and, it is very important, blocks the other executions of the same job.
 This is, because initialization of Spark Job on the Spark server, deployment of the application in the claster takes some time.
@@ -158,7 +158,11 @@ The next job executions should be much faster.
 
 Starting and executing the **MovieRecommendation** job:
 
-        $ curl -v -XPOST -H "Content-Type: application/json" -d '{"userId": 718, "limit": 10}' http://localhost:5050/v1/spark/movies
+    $ curl -XPOST -H "Content-Type: application/json" -d '{"mode": "SYNC", "codeName": "MOVIEREC", "params": [{"name": "inputDir", "value": "/user/zedar/input_movie"}, {"name": "outputDir", "value": "/user/zedar/output_movie"}, {"name": "userId", "value": 12}, {"name": "limit", "value": 15}]}' http://localhost:5050/v2/spark/jobs
+    
+Starting and executing any of the registered jobs:
+
+    $ curl -v -XPOST -H "Content-Type: application/json" -d '{"mode": "SYNC", "codeName": "TOPN", "params":[{"name": "name1", "value": "value1"}]}' http://localhost:5050/v2/spark/jobs
     
 # Spark module/job interface
 

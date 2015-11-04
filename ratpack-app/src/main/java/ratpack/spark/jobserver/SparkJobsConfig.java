@@ -15,12 +15,24 @@
  */
 package ratpack.spark.jobserver;
 
+import com.fasterxml.jackson.core.JsonParser;
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.core.ObjectCodec;
+import com.fasterxml.jackson.databind.DeserializationContext;
+import com.fasterxml.jackson.databind.JsonDeserializer;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
+import com.google.common.base.Splitter;
 import com.google.common.collect.Lists;
 import lombok.NoArgsConstructor;
 import lombok.ToString;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
+import java.io.IOException;
 import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 
 /**
@@ -32,6 +44,51 @@ import java.util.Objects;
 public class SparkJobsConfig {
   private List<String> jarPaths;
   private List<String> classNames;
+  @JsonDeserialize(using = JobsDeserializer.class )
+  private Map<String, String> jobs;
+
+  public static class JobsDeserializer extends JsonDeserializer<Map<String, String>> {
+    private static final Logger LOGGER = LoggerFactory.getLogger(JobsDeserializer.class);
+
+    @Override
+    public Map<String, String> deserialize(JsonParser p, DeserializationContext ctxt) throws IOException, JsonProcessingException {
+      ObjectCodec oc = p.getCodec();
+      String value = oc.readValue(p, String.class);
+      LOGGER.debug("JOBS VALUE: {}", value);
+      return Splitter.on(",").withKeyValueSeparator("=").split(value);
+    }
+  }
+
+  /**
+   * Map of jo'sb code name to its main class name.
+   *
+   * @return the map of job's unique code name to job's main class name
+   */
+  public Map<String, String> getJobs() {
+    return jobs;
+  }
+
+  /**
+   * Sets map of job's code name to its class name. The string should be in form of
+   * {@code JOB_NAME=job.class.name,JOB_NAME2=job.class.name2}.
+   *
+   * @param codeName2className serialized map in form of job name to its class name
+   * @return this
+   */
+  public SparkJobsConfig jobs(String codeName2className) {
+    jobs(Splitter.on(",").withKeyValueSeparator("=").split(codeName2className));
+    return this;
+  }
+
+  /**
+   * Sets map of job's code name to its class name
+   * @param jobs an immutable map of job's code name to its class name
+   * @return this
+   */
+  public SparkJobsConfig jobs(final Map<String, String> jobs) {
+    this.jobs = jobs;
+    return this;
+  }
 
   /**
    * Array of paths (directories or directly jars) containing spark jobs and their algorithms
@@ -56,7 +113,14 @@ public class SparkJobsConfig {
    * @return the arrays of class names
    */
   public String[] getClassNames() {
-    return (classNames == null ? Collections.emptyList() : classNames).toArray(new String[]{});
+    List<String> allClassNames = Lists.newArrayList();
+    if (classNames != null) {
+      allClassNames.addAll(classNames);
+    }
+    if (jobs != null) {
+      allClassNames.addAll(jobs.values());
+    }
+    return allClassNames.toArray(new String[]{});
   }
 
   /**
@@ -65,7 +129,11 @@ public class SparkJobsConfig {
    * @return this
    */
   public SparkJobsConfig classNames(final List<String> classNames) {
-    this.classNames = classNames;
+    if (this.classNames != null) {
+      this.classNames.addAll(classNames);
+    } else {
+      this.classNames = classNames;
+    }
     return this;
   }
 }

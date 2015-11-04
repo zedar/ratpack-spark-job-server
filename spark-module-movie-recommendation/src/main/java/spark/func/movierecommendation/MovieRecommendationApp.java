@@ -46,9 +46,6 @@ import java.util.regex.Pattern;
 public class MovieRecommendationApp implements JobAPI {
   private static final Logger LOGGER = LoggerFactory.getLogger(MovieRecommendationApp.class);
 
-  private static final String INPUT_DIR_ARG = "inputDir";
-  private static final String OUTPUT_DIR_ARG = "outputDir";
-
   private static final String RESULT_REGEX = "\\(Rating\\(([\\d]+),([\\d]+),([-+]?[0-9]*\\.?[0-9]+)\\),(.+)\\)";
   private static final Pattern RESULT_PATTERN = Pattern.compile(RESULT_REGEX);
 
@@ -128,22 +125,23 @@ public class MovieRecommendationApp implements JobAPI {
     }
   }
   @Override
-  public void beforeJob(Configuration configuration, JavaSparkContext sparkContext, Map<String, String> params) throws Exception {
+  public void beforeJob(Configuration hadoopConfig, JavaSparkContext sparkContext, Map<String, String> params) throws Exception {
     LOGGER.info("BEFORE JOB STARTED");
     Objects.requireNonNull(params);
 
     sparkContext.sc().addSparkListener(new Listener());
-    String inputDir = params.get(INPUT_DIR_ARG);
-    String outputDir = params.get(OUTPUT_DIR_ARG);
 
-    if (configuration != null && !Strings.isNullOrEmpty(outputDir)) {
-      FileSystem fileSystem = FileSystem.get(configuration);
-      fileSystem.delete(new Path(outputDir), false);
+    String inputPath = getJobInputPath(hadoopConfig, params);
+    String outputPath = getJobOutputPath(hadoopConfig, params);
+
+    if (hadoopConfig != null && !Strings.isNullOrEmpty(outputPath)) {
+      FileSystem fileSystem = FileSystem.get(hadoopConfig);
+      fileSystem.delete(new Path(outputPath), false);
     }
 
     if (ratings == null) {
       // read user-item ratings and create Rating-s and cache them
-      ratings = sparkContext.textFile(inputDir + "/ratings.csv")
+      ratings = sparkContext.textFile(inputPath + "/ratings.csv")
         .flatMap(s -> {
           // skip header
           if (s.contains("userId")) {
@@ -157,7 +155,7 @@ public class MovieRecommendationApp implements JobAPI {
 
     // firstly train the recommendation model
     if (model == null) {
-      Objects.requireNonNull(inputDir);
+      Objects.requireNonNull(inputPath);
 
       // build the recommendation model using Alternate Least Square Method
       int rank = 10; // number of latent factors
@@ -170,20 +168,20 @@ public class MovieRecommendationApp implements JobAPI {
   }
 
   @Override
-  public void runJob(Configuration configuration, JavaSparkContext sparkContext, Map<String, String> params) throws Exception {
+  public void runJob(Configuration hadoopConfig, JavaSparkContext sparkContext, Map<String, String> params) throws Exception {
     LOGGER.info("RUN JOB STARTED");
 
     Objects.requireNonNull(params);
     if (model == null) {
-      beforeJob(configuration, sparkContext, params);
+      beforeJob(hadoopConfig, sparkContext, params);
     }
 
-    String inputDir = params.getOrDefault(INPUT_DIR_ARG, "input");
-    String outputDir = params.getOrDefault(OUTPUT_DIR_ARG, "output");
+    String inputPath = getJobInputPath(hadoopConfig, params);
+    String outputPath = getJobOutputPath(hadoopConfig, params);
 
     if (items == null) {
       // read item description
-      items = sparkContext.textFile(inputDir + "/movies.csv")
+      items = sparkContext.textFile(inputPath + "/movies.csv")
         .<Integer, String>flatMapToPair(s -> {
           // skip header
           if (s.contains("movieId")) {
@@ -216,20 +214,20 @@ public class MovieRecommendationApp implements JobAPI {
 
     sparkContext
       .parallelize(recommendedItems.takeOrdered(limit, new RatingComparator()))
-      .saveAsTextFile(outputDir);
+      .saveAsTextFile(outputPath);
     LOGGER.info("RUN JOB FINISHED");
   }
 
   @Override
-  public List<List<String>> fetchResults(Configuration configuration, JavaSparkContext sparkContext, Map<String, String> params) throws Exception {
-    if (configuration == null) {
+  public List<List<String>> fetchResults(Configuration hadoopConfig, JavaSparkContext sparkContext, Map<String, String> params) throws Exception {
+    if (hadoopConfig == null) {
       return Lists.newArrayList();
     }
 
-    String outputDir = params.getOrDefault(OUTPUT_DIR_ARG, "output");
+    String outputPath = getJobOutputPath(hadoopConfig, params);
 
-    FileSystem fileSystem = FileSystem.get(configuration);
-    FileStatus[] status = fileSystem.listStatus(new Path(outputDir), new PathFilter() {
+    FileSystem fileSystem = FileSystem.get(hadoopConfig);
+    FileStatus[] status = fileSystem.listStatus(new Path(outputPath), new PathFilter() {
       @Override
       public boolean accept(Path path) {
         return path.getName().startsWith("part");
@@ -258,14 +256,14 @@ public class MovieRecommendationApp implements JobAPI {
   }
 
   @Override
-  public void afterJob(Configuration configuration, JavaSparkContext sparkContext, Map<String, String> params) throws Exception {
-    if (configuration == null) {
+  public void afterJob(Configuration hadoopConfig, JavaSparkContext sparkContext, Map<String, String> params) throws Exception {
+    if (hadoopConfig == null) {
       return;
     }
 
-    String outputDir = params.getOrDefault(OUTPUT_DIR_ARG, "output");
-    FileSystem fileSystem = FileSystem.get(configuration);
-    fileSystem.delete(new Path(outputDir), true);
+    String outputPath = getJobOutputPath(hadoopConfig, params);
+    FileSystem fileSystem = FileSystem.get(hadoopConfig);
+    fileSystem.delete(new Path(outputPath), true);
   }
 
   @Override

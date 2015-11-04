@@ -15,6 +15,7 @@
  */
 package ratpack.spark.jobserver.dto;
 
+import com.fasterxml.jackson.annotation.JsonInclude;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.ToString;
@@ -25,16 +26,17 @@ import lombok.ToString;
 @AllArgsConstructor
 @ToString
 @Getter
+@JsonInclude(JsonInclude.Include.NON_NULL)
 public class Result<T> {
   private final String errorCode;
   private final String errorMessage;
-  private final T value;
+  private final T data;
 
   public static <T> Result<T> of(ratpack.exec.Result<T> result) {
     if (result.isSuccess()) {
       return new Result<>("0", null, result.getValue());
     } else {
-      return new Result<>(result.getThrowable().getMessage(), result.getThrowable().getCause() != null ? result.getThrowable().getCause().getMessage() : result.getThrowable().getMessage(), null);
+      return new Result<>(result.getThrowable().getClass().getSimpleName(), result.getThrowable().getCause() != null ? result.getThrowable().getCause().getMessage() : result.getThrowable().getMessage(), null);
     }
   }
 }

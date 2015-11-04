@@ -43,7 +43,7 @@ public class Request {
    * <p>
    * It is used as factory method {@link JsonCreator} during the JSON deserialization phase.
    *
-   * @param userId a user id to find movie recommendations
+   * @param userId a user jobId to find movie recommendations
    * @param limit a number of movies to recommend
    * @return the Request for movie recommendation service
    */

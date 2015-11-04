@@ -19,20 +19,24 @@
     </RollingFile>
   </Appenders>
   <Loggers>
-    <Logger name="ratpack.spark.jobserver" level="debug" additivity="false">
-      <AppenderRef ref="ConsoleClient"/>
-      <AppenderRef ref="RollingFile" />
-    </Logger>
-
-    <Logger name="spark.func" level="debug" additivity="false">
-      <AppenderRef ref="ConsoleClient"/>
-      <AppenderRef ref="RollingFile" />
-    </Logger>
-
-    <Root level="error">
+    <AsyncLogger name="ratpack.request" level="debug" additivity="false">
       <AppenderRef ref="Console"/>
-      <AppenderRef ref="RollingFile"/>
-    </Root>
+    </AsyncLogger>
+
+    <AsyncLogger name="ratpack.spark.jobserver" level="debug" additivity="false">
+      <AppenderRef ref="ConsoleClient"/>
+      <!--<AppenderRef ref="RollingFile" />-->
+    </AsyncLogger>
+
+    <AsyncLogger name="spark.func" level="debug" additivity="false">
+      <AppenderRef ref="ConsoleClient"/>
+      <!--<AppenderRef ref="RollingFile" />-->
+    </AsyncLogger>
+
+    <AsyncRoot level="error">
+      <AppenderRef ref="Console"/>
+      <!--<AppenderRef ref="RollingFile"/>-->
+    </AsyncRoot>
 
   </Loggers>
 </Configuration>
