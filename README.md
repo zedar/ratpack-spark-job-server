@@ -58,6 +58,7 @@ Import example access log data into the hdfs file system.
     $ cd spark-module-topn/src/test/resources/input
     $ hdfs dfs -copyFromLocal access*.log /user/$USER/input
 
+
 ## Import example movie recommendation data into the HDFS
 
 We assume that the current user is hadoop's user too. So create folder structure in hdfs directly. 
@@ -85,13 +86,21 @@ Before the launch there is a need to set up some of the settings.
 
     spark.homeDir=/Users/zedar/dev/hadoopdev/spark-1.5.0-bin-without-hadoop
 
-**spark.user** - a user in context of which we access spark server as well as HDFS file system
+**spark.extraJavaOptions** - additional parameters for job execution
+
+    spark.extraJavaOptions=
+    
+**spark.user** - a user in context of which we access spark server
 
     spark.user=zedar
 
 **spark.master** - address of the Spark server either local, or standalone.
 
     spark.master=spark://localhost:7077
+    
+If Spark is configured in High Availability, then all master nodes should be put in one line
+
+    spark.master=spark://master.server1:9077,master.server2:9077
 
 **spark.maxCoresPerTask** - maximum number of cores to be used by one Spark job. Default value is `2`.
 
@@ -107,10 +116,19 @@ Before the launch there is a need to set up some of the settings.
 
 ## ratpack-app/src/ratpack/sparkjobs.properties
 
-**job.topNJarsDir** - a path to folder with jars needed by TopN Spark job.
+**job.jarPaths[n]** - Collection of paths with jars that should be put on the SparkContext classpath
 
-    job.topNJarsDir=/Users/zedar/dev/hadoopdev/ratpack-spark-job-server/spark-module-topn/build/libs/
+    job.jarPaths[0]=/Users/zedar/dev/hadoopdev/ratpack-spark-job-server/spark-module-topn/build/libs/
+    job.jarPaths[1]=/Users/zedar/dev/hadoopdev/ratpack-spark-job-server/spark-module-movie-recommendation/build/libs/
 
+**job.classNames[n]** - All jars that contain the class names should be transfered with SparkContext
+
+    job.classNames[0]=spark.jobserver.JobAPI
+    
+**job.jobs** - Definition of jobs code names to their class names. The class names indicates the jars that shuld be transferred with SparkContext
+
+    job.jobs=TOPN=spark.func.topn.TopNApp,MOVIEREC=spark.func.movierecommendation.MovieRecommendationApp
+    
 # Spark and multiple SparkContexts in the same JVM
 
 The 1.5 Apache Spark version assumes that there is only one instance of the `SparkContext` per JVM. 
