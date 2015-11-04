@@ -133,10 +133,10 @@ public class ContainersService {
           m.invoke(sparkConfig, SPARK_APP_NAME);
           m = sparkConfClass.getMethod("setMaster", String.class);
           m.invoke(sparkConfig, config.getMaster());
-          if (!Strings.isNullOrEmpty(config.getHomeDir())) {
-            m = sparkConfClass.getMethod("setSparkHome", String.class);
-            m.invoke(sparkConfig, config.getHomeDir());
-          }
+//          if (!Strings.isNullOrEmpty(config.getHomeDir())) {
+//            m = sparkConfClass.getMethod("setSparkHome", String.class);
+//            m.invoke(sparkConfig, config.getHomeDir());
+//          }
           String maxCoresPerTask = config.getMaxCoresPerTask() == null ? "2" : config.getMaxCoresPerTask().toString();
           m = sparkConfClass.getMethod("set", String.class, String.class);
           m.invoke(sparkConfig, "spark.cores.max", maxCoresPerTask);
