@@ -97,7 +97,6 @@ public class JobsService {
     Objects.requireNonNull(jobId);
     return jobsRepository
       .findJob(jobId)
-      .onNull(() -> Result.error(new IllegalArgumentException("JOB UNDEFINED id: " + jobId)))
-      .map(Result::success);
+      .flatMap(j -> j != null ? Promise.value(Result.success(j)) : Promise.value(Result.error(new IllegalArgumentException("JOB UNDEFINED id: " + jobId))));
   }
 }

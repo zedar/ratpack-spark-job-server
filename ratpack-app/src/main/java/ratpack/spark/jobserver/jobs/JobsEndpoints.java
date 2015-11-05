@@ -40,7 +40,10 @@ public class JobsEndpoints implements Action<Chain> {
         ctx.byMethod(spec -> spec
           .get(() -> jobsService.get(jobId)
             .map(Result::of)
-            .map(r -> json(r))
+            .map(r -> {
+              LOGGER.debug("RESULT: {}", r.toString());
+              return json(r);
+            })
             .then(ctx::render)
           )
         );

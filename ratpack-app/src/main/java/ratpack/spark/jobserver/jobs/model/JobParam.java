@@ -11,6 +11,7 @@ import lombok.ToString;
 
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 /**
  * Parameter of a job execution.
@@ -31,8 +32,9 @@ public class JobParam {
     if (params == null) {
       return ImmutableMap.of();
     }
-    Map<String, String> outParams = Maps.newConcurrentMap();
-    params.forEach(p -> outParams.put(p.getName(), p.getValue()));
+    Map<String, String> outParams = params
+      .stream()
+      .collect(Collectors.toMap(JobParam::getName, JobParam::getValue));
     return ImmutableMap.copyOf(outParams);
   }
 

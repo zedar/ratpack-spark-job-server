@@ -7,6 +7,7 @@ import lombok.*;
 
 import java.util.List;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 /**
  * Job executions values
@@ -136,8 +137,10 @@ public class Job {
       if (values == null) {
         return ImmutableList.of();
       }
-      List<JobValue> outValues = Lists.newArrayList();
-      values.forEach(v -> outValues.add(JobValue.of(v)));
+      List<JobValue> outValues = values
+        .stream()
+        .map(v -> JobValue.of(v))
+        .collect(Collectors.toList());
       return ImmutableList.copyOf(outValues);
     }
   }
