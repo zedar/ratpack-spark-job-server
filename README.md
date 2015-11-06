@@ -73,9 +73,11 @@ Import example movie recommendation data into the hdfs file system.
 
 # Settings
 
-Before the launch there is a need to set up some of the settings.
 
 ## ratpack-app/src/ratpack/application.properties
+
+*IMPORTANT: you can also override the settings by putting `config/application.properties` file on the class path. For example by
+placing it in `ratpack-app/src/ratpack/config/application.properties`.*
 
 **spark.libsDir** - a path to folder with all Apache Spark dependencies. It is the results of 
 `./gradlew :spark-module-deps:installDist` command.
@@ -115,6 +117,9 @@ If Spark is configured in High Availability, then all master nodes should be put
     spark.fileSystemPort=54310
 
 ## ratpack-app/src/ratpack/sparkjobs.properties
+
+*IMPORTANT: you can also override the settings by putting `config/sparkjobs.properties` file on the class path. For example by
+placing it in `ratpack-app/src/ratpack/config/sparkjobs.properties`.*
 
 **job.jarPaths[n]** - Collection of paths with jars that should be put on the SparkContext classpath
 

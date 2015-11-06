@@ -30,6 +30,9 @@ import ratpack.server.BaseDir;
 import ratpack.server.RatpackServer;
 import ratpack.spark.jobserver.jobs.JobsEndpoints;
 
+import java.net.URL;
+import java.nio.file.Path;
+
 /**
  * Starting point for the Apacke Spark jobs. Working with hadoop HDFS (distributed file system).
  */
@@ -38,13 +41,26 @@ public class Main {
 
   public static void main(String... args) throws Exception {
     RatpackServer ratpackServer = RatpackServer.start(spec -> spec
-        .serverConfig(builder -> builder
-            .baseDir(BaseDir.find("application.properties"))
-            .props(Main.class.getClassLoader().getResource("application.properties"))
-            .props(Main.class.getClassLoader().getResource("sparkjobs.properties"))
-            .env().sysProps()
-            .require("/spark", SparkConfig.class)
-            .require("/job", SparkJobsConfig.class)
+        .serverConfig(builder -> {
+            Path basePath = BaseDir.find("application.properties");
+            LOGGER.debug("BASE DIR: {}", basePath.toString());
+            builder
+              .baseDir(BaseDir.find("application.properties"))
+              .env()
+              .sysProps();
+
+            URL applicationRsc = Main.class.getClassLoader().getResource("config/application.properties");
+            LOGGER.debug("OVERLOADED APPLICATION.PROPS: {}", applicationRsc != null ? applicationRsc.toString() : "NONE");
+            builder.props(applicationRsc != null ? applicationRsc : Main.class.getClassLoader().getResource("application.properties"));
+
+            URL sparkJobsRsc = Main.class.getClassLoader().getResource("config/sparkjobs.properties");
+            LOGGER.debug("OVERLOADED SPARKJOBS.PROPS: {}", sparkJobsRsc != null ? sparkJobsRsc.toString() : "NONE");
+            builder.props(sparkJobsRsc != null ? sparkJobsRsc : Main.class.getClassLoader().getResource("sparkjobs.properties"));
+
+            builder
+              .require("/spark", SparkConfig.class)
+              .require("/job", SparkJobsConfig.class);
+          }
         )
         .registry(Guice.registry(bindingsSpec -> {
           bindingsSpec
@@ -65,14 +81,14 @@ public class Main {
               ctx.next();
             })
             .prefix("v1", chain1 -> chain1
-              .all(RequestLogger.ncsa())
-              .get("api-def", ctx -> {
-                LOGGER.debug("GET API_DEF.JSON");
-                SparkJobsConfig config = ctx.get(SparkJobsConfig.class);
-                LOGGER.debug("SPARK JOBS CONFIG: " + config.toString());
-                ctx.render(ctx.file("public/apidef/apidef.json"));
-              })
-              .prefix("spark", JobsEndpoints.class)
+                .all(RequestLogger.ncsa())
+                .get("api-def", ctx -> {
+                  LOGGER.debug("GET API_DEF.JSON");
+                  SparkJobsConfig config = ctx.get(SparkJobsConfig.class);
+                  LOGGER.debug("SPARK JOBS CONFIG: " + config.toString());
+                  ctx.render(ctx.file("public/apidef/apidef.json"));
+                })
+                .prefix("spark", JobsEndpoints.class)
             )
         )
     );
