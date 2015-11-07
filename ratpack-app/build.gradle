@@ -6,6 +6,10 @@ buildscript {
   repositories {
     jcenter()
   }
+  dependencies {
+    classpath 'io.github.robwin:swagger2markup-gradle-plugin:0.8.0'
+    classpath 'org.asciidoctor:asciidoctor-gradle-plugin:1.5.2'
+  }
 }
 
 //----------------------------------------------------------------------------------------------------------------------
@@ -18,6 +22,9 @@ plugins {
   id "idea"
   id "checkstyle"
 }
+
+apply plugin: 'io.github.robwin.swagger2markup'
+apply plugin: 'org.asciidoctor.convert'
 
 //----------------------------------------------------------------------------------------------------------------------
 // Source compatibility settings
@@ -82,3 +89,10 @@ checkstyle {
   configProperties.checkstyleConfigDir = checkstyleConfigDir
 }
 
+// ---------------------------------------------------------------------------------------------------------------------
+// convert swagger API definition to markdown
+// ---------------------------------------------------------------------------------------------------------------------
+
+convertSwagger2markup {
+  outputDir file("docs/apidef")
+}

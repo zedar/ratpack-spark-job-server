@@ -1,0 +1,61 @@
+== Definitions
+=== JobParam
+:hardbreaks:
+singular job parameter with own name and value
+
+[options="header"]
+|===
+|Name|Description|Required|Schema|Default
+|name||false|string|
+|value||false|string|
+|===
+
+=== JobValue
+:hardbreaks:
+Singular job value record containing list of string items
+
+[options="header"]
+|===
+|Name|Description|Required|Schema|Default
+|values||false|string array|
+|===
+
+=== JobRequest
+:hardbreaks:
+A collection of parameters describing job type and its input parameters
+
+
+[options="header"]
+|===
+|Name|Description|Required|Schema|Default
+|mode|SYNC (blocking call), ASYNC (run in background)|false|string|
+|codeName|unique code name of the job. The code name has to be registered and has to have defined main class name|false|string|
+|params||false|<<JobParam>> array|
+|===
+
+=== JobValues
+:hardbreaks:
+A result of job execution
+
+
+[options="header"]
+|===
+|Name|Description|Required|Schema|Default
+|jobId|unique job identifier (UUID)|false|string|
+|jobStatus|FINISHED, WORKING, FAILED|false|string|
+|values||false|<<JobValue>> array|
+|===
+
+=== Result
+:hardbreaks:
+Job execution result containing error code and error message (if any) as well as job return values
+
+
+[options="header"]
+|===
+|Name|Description|Required|Schema|Default
+|errorCode|error code|false|string|
+|errorMessage|error message|false|string|
+|data|list of values returned by the job|false|<<JobValues>>|
+|===
+

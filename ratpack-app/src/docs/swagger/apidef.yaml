@@ -9,6 +9,7 @@ paths:
       description: |
         Execute Spark job, either as blocking (SYNC) call or in background (ASYNC) - without waiting for the result.
         If job's container is not initialized all subsequent calls have to wait.
+      summary: Submit Spark job
       consumes:
         - application/json
       produces:
@@ -18,10 +19,7 @@ paths:
           in: body
           required: true
           schema:
-            type: object
-            properties:
-              job:
-                $ref: '#/definitions/JobRequest'
+              $ref: '#/definitions/JobRequest'
       responses:
         '200':
           description: Job executed and returned a data
@@ -33,6 +31,7 @@ paths:
             $ref: '#/definitions/Result'
   '/v1/spark/jobs/{job_id}':
     get:
+      summary: Get Spark job status
       description: |
         Get job's execution status
       produces:

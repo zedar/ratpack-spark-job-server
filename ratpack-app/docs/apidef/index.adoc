@@ -1,0 +1,7 @@
+:hardbreaks:
+:revnumber: {project-version}
+:revdate: {localdate}
+
+include::overview.adoc[]
+include::paths.adoc[]
+include::definitions.adoc[]

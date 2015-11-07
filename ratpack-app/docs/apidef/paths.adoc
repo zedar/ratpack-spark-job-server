@@ -1,0 +1,64 @@
+== Paths
+=== Submit Spark job
+----
+POST /v1/spark/jobs
+----
+
+==== Description
+:hardbreaks:
+Execute Spark job, either as blocking (SYNC) call or in background (ASYNC) - without waiting for the result.
+If job's container is not initialized all subsequent calls have to wait.
+
+
+==== Parameters
+[options="header"]
+|===
+|Type|Name|Description|Required|Schema|Default
+|BodyParameter|body||true|<<JobRequest>>|
+|===
+
+==== Responses
+[options="header"]
+|===
+|HTTP Code|Description|Schema
+|200|Job executed and returned a data|<<Result>>
+|400|Job failed|<<Result>>
+|===
+
+==== Consumes
+
+* application/json
+
+==== Produces
+
+* application/json
+
+=== Get Spark job status
+----
+GET /v1/spark/jobs/{job_id}
+----
+
+==== Description
+:hardbreaks:
+Get job's execution status
+
+
+==== Parameters
+[options="header"]
+|===
+|Type|Name|Description|Required|Schema|Default
+|PathParameter|job_id|A job id|true|string|
+|===
+
+==== Responses
+[options="header"]
+|===
+|HTTP Code|Description|Schema
+|200|The job's current status|<<Result>>
+|400|Job failed|<<Result>>
+|===
+
+==== Produces
+
+* application/json
+

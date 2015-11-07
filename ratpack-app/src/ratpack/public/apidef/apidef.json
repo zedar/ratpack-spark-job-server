@@ -1,165 +1,162 @@
 {
-    "swagger": "2.0",
-    "info": {
-        "version": "0.0.1",
-        "title": "Spark Server API",
-        "description": "Run Apache Spark jobs synchronously or asynchronously."
-    },
-    "paths": {
-        "/v1/spark/jobs": {
-            "post": {
-                "description": "Execute Spark job, either as blocking (SYNC) call or in background (ASYNC) - without waiting for the result.\nIf job's container is not initialized all subsequent calls have to wait.\n",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "parameters": [
-                    {
-                        "name": "body",
-                        "in": "body",
-                        "required": true,
-                        "schema": {
-                            "type": "object",
-                            "properties": {
-                                "job": {
-                                    "$ref": "#/definitions/JobRequest"
-                                }
-                            }
-                        }
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "Job executed and returned a data",
-                        "schema": {
-                            "$ref": "#/definitions/Result"
-                        }
-                    },
-                    "400": {
-                        "description": "Job failed",
-                        "schema": {
-                            "$ref": "#/definitions/Result"
-                        }
-                    }
-                }
+  "swagger": "2.0",
+  "info": {
+    "version": "0.0.1",
+    "title": "Spark Server API",
+    "description": "Run Apache Spark jobs synchronously or asynchronously."
+  },
+  "paths": {
+    "/v1/spark/jobs": {
+      "post": {
+        "description": "Execute Spark job, either as blocking (SYNC) call or in background (ASYNC) - without waiting for the result.\nIf job's container is not initialized all subsequent calls have to wait.\n",
+        "summary": "Submit Spark job",
+        "consumes": [
+          "application/json"
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "parameters": [
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/JobRequest"
             }
-        },
-        "/v1/spark/jobs/{job_id}": {
-            "get": {
-                "description": "Get job's execution status\n",
-                "produces": [
-                    "application/json"
-                ],
-                "parameters": [
-                    {
-                        "name": "job_id",
-                        "in": "path",
-                        "type": "string",
-                        "description": "A job id",
-                        "required": true
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "The job's current status",
-                        "schema": {
-                            "$ref": "#/definitions/Result"
-                        }
-                    },
-                    "400": {
-                        "description": "Job failed",
-                        "schema": {
-                            "$ref": "#/definitions/Result"
-                        }
-                    }
-                }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Job executed and returned a data",
+            "schema": {
+              "$ref": "#/definitions/Result"
             }
+          },
+          "400": {
+            "description": "Job failed",
+            "schema": {
+              "$ref": "#/definitions/Result"
+            }
+          }
         }
+      }
     },
-    "definitions": {
-        "JobParam": {
-            "type": "object",
-            "description": "singular job parameter with own name and value",
-            "properties": {
-                "name": {
-                    "type": "string"
-                },
-                "value": {
-                    "type": "string"
-                }
+    "/v1/spark/jobs/{job_id}": {
+      "get": {
+        "summary": "Get Spark job status",
+        "description": "Get job's execution status\n",
+        "produces": [
+          "application/json"
+        ],
+        "parameters": [
+          {
+            "name": "job_id",
+            "in": "path",
+            "type": "string",
+            "description": "A job id",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The job's current status",
+            "schema": {
+              "$ref": "#/definitions/Result"
             }
-        },
-        "JobValue": {
-            "type": "object",
-            "description": "Singular job value record containing list of string items",
-            "properties": {
-                "values": {
-                    "type": "array",
-                    "items": {
-                        "type": "string"
-                    }
-                }
+          },
+          "400": {
+            "description": "Job failed",
+            "schema": {
+              "$ref": "#/definitions/Result"
             }
-        },
-        "JobRequest": {
-            "description": "A collection of parameters describing job type and its input parameters\n",
-            "type": "object",
-            "properties": {
-                "mode": {
-                    "type": "string",
-                    "description": "SYNC (blocking call), ASYNC (run in background)"
-                },
-                "codeName": {
-                    "type": "string",
-                    "description": "unique code name of the job. The code name has to be registered and has to have defined main class name"
-                },
-                "params": {
-                    "type": "array",
-                    "items": {
-                        "$ref": "#/definitions/JobParam"
-                    }
-                }
-            }
-        },
-        "JobValues": {
-            "description": "A result of job execution\n",
-            "type": "object",
-            "properties": {
-                "jobId": {
-                    "type": "string",
-                    "description": "unique job identifier (UUID)"
-                },
-                "jobStatus": {
-                    "type": "string",
-                    "description": "FINISHED, WORKING, FAILED"
-                },
-                "values": {
-                    "type": "array",
-                    "items": {
-                        "$ref": "#/definitions/JobValue"
-                    }
-                }
-            }
-        },
-        "Result": {
-            "description": "Job execution result containing error code and error message (if any) as well as job return values\n",
-            "type": "object",
-            "properties": {
-                "errorCode": {
-                    "type": "string",
-                    "description": "error code"
-                },
-                "errorMessage": {
-                    "type": "string",
-                    "description": "error message"
-                },
-                "data": {
-                    "$ref": "#/definitions/JobValues",
-                    "description": "list of values returned by the job"
-                }
-            }
+          }
         }
+      }
     }
+  },
+  "definitions": {
+    "JobParam": {
+      "type": "object",
+      "description": "singular job parameter with own name and value",
+      "properties": {
+        "name": {
+          "type": "string"
+        },
+        "value": {
+          "type": "string"
+        }
+      }
+    },
+    "JobValue": {
+      "type": "object",
+      "description": "Singular job value record containing list of string items",
+      "properties": {
+        "values": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "JobRequest": {
+      "description": "A collection of parameters describing job type and its input parameters\n",
+      "type": "object",
+      "properties": {
+        "mode": {
+          "type": "string",
+          "description": "SYNC (blocking call), ASYNC (run in background)"
+        },
+        "codeName": {
+          "type": "string",
+          "description": "unique code name of the job. The code name has to be registered and has to have defined main class name"
+        },
+        "params": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/JobParam"
+          }
+        }
+      }
+    },
+    "JobValues": {
+      "description": "A result of job execution\n",
+      "type": "object",
+      "properties": {
+        "jobId": {
+          "type": "string",
+          "description": "unique job identifier (UUID)"
+        },
+        "jobStatus": {
+          "type": "string",
+          "description": "FINISHED, WORKING, FAILED"
+        },
+        "values": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/JobValue"
+          }
+        }
+      }
+    },
+    "Result": {
+      "description": "Job execution result containing error code and error message (if any) as well as job return values\n",
+      "type": "object",
+      "properties": {
+        "errorCode": {
+          "type": "string",
+          "description": "error code"
+        },
+        "errorMessage": {
+          "type": "string",
+          "description": "error message"
+        },
+        "data": {
+          "$ref": "#/definitions/JobValues",
+          "description": "list of values returned by the job"
+        }
+      }
+    }
+  }
 }

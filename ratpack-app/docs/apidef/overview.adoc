@@ -1,0 +1,10 @@
+= Spark Server API
+
+== Overview
+Run Apache Spark jobs synchronously or asynchronously.
+
+=== Version information
+Version: 0.0.1
+
+=== URI scheme
+
