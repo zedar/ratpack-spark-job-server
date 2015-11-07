@@ -94,5 +94,16 @@ checkstyle {
 // ---------------------------------------------------------------------------------------------------------------------
 
 convertSwagger2markup {
+  outputDir file("docs/apidef-asciidoc")
+}
+
+ext {
+  asciiDocOutputDir = file("docs/apidef")
+}
+
+asciidoctor {
+  dependsOn convertSwagger2markup
+  sourceDir file("docs/apidef-asciidoc")
   outputDir file("docs/apidef")
+  backends = ['html5']
 }
