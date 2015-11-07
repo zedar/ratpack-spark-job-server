@@ -221,7 +221,7 @@ Starting and executing any of the registered jobs:
 ----
 == Job Server API
 
-include::{asciidoctor-source}ratpack-app/docs/apidef/index.adoc[]
+include::https://github.com/zedar/ratpack-spark-job-server/blob/master/ratpack-app/docs/apidef/index.adoc[]
 
 == Spark module/job interface
 
