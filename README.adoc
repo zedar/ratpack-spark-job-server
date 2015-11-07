@@ -220,8 +220,8 @@ Starting and executing any of the registered jobs:
     $ curl -v -XPOST -H "Content-Type: application/json" -d '{"mode": "SYNC", "codeName": "TOPN", "params":[{"name": "name1", "value": "value1"}]}' http://localhost:5050/v1/spark/jobs
 ----
 == Job Server API
-
-include::https://github.com/zedar/ratpack-spark-job-server/blob/master/ratpack-app/docs/apidef/index.adoc[]
+:asciidoctor-source: https://github.com/zedar/ratpack-spark-job-server/blob/master/ratpack-app/docs/apidef
+include::{asciidoctor-source}/index.adoc[]
 
 == Spark module/job interface
 
