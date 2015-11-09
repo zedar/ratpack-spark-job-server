@@ -39,9 +39,9 @@ repositories {
 
 dependencies {
   // Apache Spark core
-  compile "org.apache.spark:spark-core_2.10:1.5.0"
+  compile "org.apache.spark:spark-core_2.10:1.5.1"
   // Apache Spark Machine Learning Library
-  compile "org.apache.spark:spark-mllib_2.10:1.5.0"
+  compile "org.apache.spark:spark-mllib_2.10:1.5.1"
   // Google implementation of regex with linear speed RE2
   compile "com.google.re2j:re2j:1.0"
   // Job server API

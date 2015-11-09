@@ -27,7 +27,7 @@ Apache Spark is a cluster computing system. We tend to use http://spark.apache.o
 
 Installation hints: go to the http://spark.apache.org/downloads.html[downloads page] and choose:
 
-* Spark release - 1.5.0
+* Spark release - 1.5.1
 * Package type - pre-build with user-provided Hadoop (we assume that hadoop is already installed).
 
 Unpack the distribution and open `conf/spark-env.sh` file. 
