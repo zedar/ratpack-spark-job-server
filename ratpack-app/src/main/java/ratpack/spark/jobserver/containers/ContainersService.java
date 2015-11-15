@@ -106,7 +106,7 @@ public class ContainersService {
           Object configuration = configurationClass.newInstance();
           Method method = configurationClass.getMethod("set", String.class, String.class);
           method.invoke(configuration, "fs.defaultFS", config.getFileSystemAddress());
-
+          method.invoke(configuration, "io.compression.codecs", "com.hadoop.compression.lzo.LzopCodec");
           hadoopConfiguration = configuration;
         }
 
@@ -145,6 +145,9 @@ public class ContainersService {
           m.invoke(sparkConfig, "spark.driver.allowMultipleContexts", "true");
           m.invoke(sparkConfig, "spark.rpc.askTimeout", "20");
           m.invoke(sparkConfig, "spark.rpc.numRetries", "1");
+          //
+          //m.invoke(sparkConfig, "spark.executor.memory", "4G");
+          //
           if (!Strings.isNullOrEmpty(config.getExtraJavaOptions())) {
             m.invoke(sparkConfig, "spark.executor.extraJavaOptions", config.getExtraJavaOptions());
           }

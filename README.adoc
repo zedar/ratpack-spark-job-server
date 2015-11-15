@@ -55,6 +55,27 @@ If we want to keep single node configuration between master node restarts we can
 
 In case of configuration with `ZooKeeper` recovery settings should be in `ZooKeeper`. 
 
+=== LZO compression with https://github.com/twitter/hadoop-lzo[hadoop lzo]
+
+LZO compression is good choice for files stored in HDFS due to its speed. Compression size is worst than gzip or bzip2 but speed
+as well as possible splitability gives big value.
+
+TODO: add link to gist with full description of LZO installation.
+
+We assume `lzo` codes are already installed in the system. For OSX we can install them with the following command:
+----
+    $ brew install lzo lzop
+    $ brew list lzo
+----
+The last command shows the paths to `lzo` headers and dependencies.
+
+Clone and build the project:
+----
+    $ git clone https://github.com/twitter/hadoop-lzo
+    $ cd hadoop-lzo
+    $ C_INCLUDE_PATH=/usr/local/Cellar/lzo/2.06/include/lzo/LIBRARY_PATH=/usr/local/Cellar/lzo/2.06/lib/ mvn clean install
+----
+
 === Import example access log data into the HDFS
 
 We assume that the current user is hadoop's user too. So create folder structure in hdfs directly. 
