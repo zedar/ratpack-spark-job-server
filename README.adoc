@@ -57,7 +57,7 @@ In case of configuration with `ZooKeeper` recovery settings should be in `ZooKee
 
 === LZO compression with https://github.com/twitter/hadoop-lzo[hadoop lzo]
 
-LZO compression is good choice for files stored in HDFS due to its speed. Compression size is worst than gzip or bzip2 but speed
+LZO compression is a good choice for files stored in HDFS due to its speed. Compression size is worst than gzip or bzip2 but speed
 as well as possible splitability gives big value.
 
 TODO: add link to gist with full description of LZO installation.

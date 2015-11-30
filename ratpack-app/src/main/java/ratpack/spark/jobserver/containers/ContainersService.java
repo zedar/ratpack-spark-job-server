@@ -27,6 +27,7 @@ import ratpack.spark.jobserver.SparkJobsConfig;
 import ratpack.spark.jobserver.util.ClassUtil;
 
 import javax.inject.Inject;
+import java.io.IOException;
 import java.lang.reflect.Constructor;
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
@@ -70,6 +71,10 @@ public class ContainersService {
   // spark context shared across all the containers. Only one SparkContext can exists per JVM
   private Object javaSparkContext;
 
+  // job application health check listener
+  private Method jobAppHealthCheckIsHealthyMethod;
+  private Object jobAppHealthCheckListener;
+
   @Inject
   public ContainersService(SparkConfig config, SparkJobsConfig sparkJobsConfig) {
     this.config = config;
@@ -84,6 +89,17 @@ public class ContainersService {
    * @return the promise for job container
    */
   public Promise<Container> getJobContainer(String jobCodeName, String jobClassName) {
+    // Check if connection between Spark Driver and Spark Master is in healthy state
+    if (jobAppHealthCheckIsHealthyMethod != null && jobAppHealthCheckListener != null && javaSparkContext != null) {
+      try {
+        Boolean isHealthy = (Boolean) jobAppHealthCheckIsHealthyMethod.invoke(jobAppHealthCheckListener);
+        if (!isHealthy) {
+          return Promise.error(new IOException("SPARK_DRIVER_NO_MORE_EXECUTORS"));
+        }
+      } catch (Exception ex) {
+        return Promise.error(ex);
+      }
+    }
     Container container = containers.get(jobCodeName);
     if (container != null) {
       return Promise.value(container);
@@ -142,9 +158,17 @@ public class ContainersService {
           m.invoke(sparkConfig, "spark.cores.max", maxCoresPerTask);
           m.invoke(sparkConfig, "spark.serializer", "org.apache.spark.serializer.KryoSerializer");
           m.invoke(sparkConfig, "spark.io.compression.codec", "lz4");
+          // IMPORTANT: For debugging purposes only
+//          m.invoke(sparkConfig, "spark.akka.heartbeat.interval", "15s");
+//          m.invoke(sparkConfig, "spark.akka.heartbeat.pauses", "20s");
+          // ^^^^
+          // IMPORTANT: needed for reestablishing spark context
           m.invoke(sparkConfig, "spark.driver.allowMultipleContexts", "true");
-          m.invoke(sparkConfig, "spark.rpc.askTimeout", "20");
-          m.invoke(sparkConfig, "spark.rpc.numRetries", "1");
+          // ^^^^
+          // Duration for an RPC ask operation to wait before timing out.
+          // IMPORTANT: once application is killed on the spark master then we do not have to wait 120s for cleaning the AppClient
+          m.invoke(sparkConfig, "spark.rpc.askTimeout", "10");
+//          m.invoke(sparkConfig, "spark.rpc.numRetries", "1");
           //
           //m.invoke(sparkConfig, "spark.executor.memory", "4G");
           //
@@ -157,6 +181,17 @@ public class ContainersService {
 
           Constructor jscConstructor = javaSparkContextClass.getDeclaredConstructor(sparkConfClass);
           Object jsCtx = jscConstructor.newInstance(sparkConfig);
+
+          // Add health check listener
+          Method scMethod = javaSparkContextClass.getMethod("sc");
+          Class sparkListenerClass = containersClassLoader.loadClass("org.apache.spark.scheduler.SparkListener");
+          Class sparkContextClass = containersClassLoader.loadClass("org.apache.spark.SparkContext");
+          Method addSparkListenerMethod = sparkContextClass.getMethod("addSparkListener", sparkListenerClass);
+          Object sparkContext = scMethod.invoke(jsCtx);
+          Class jobAppHealthCheckListenerClass = containersClassLoader.loadClass("spark.jobserver.JobAppHealthCheckListener");
+          jobAppHealthCheckIsHealthyMethod = jobAppHealthCheckListenerClass.getMethod("isHealthy");
+          jobAppHealthCheckListener = jobAppHealthCheckListenerClass.newInstance();
+          addSparkListenerMethod.invoke(sparkContext, jobAppHealthCheckListener);
 
           javaSparkContext = jsCtx;
         }
@@ -196,9 +231,44 @@ public class ContainersService {
       Class javaSparkContextClass = containersClassLoader.loadClass("org.apache.spark.api.java.JavaSparkContext");
       Method jscStopMethod = javaSparkContextClass.getMethod("stop");
       jscStopMethod.invoke(javaSparkContext);
+      javaSparkContext = null;
     }
     if (containers.size() > 0) {
       stopJavaSparkContexts(containers.entrySet().toArray(new Container[]{}));
+      containers.clear();
+    }
+  }
+
+  /**
+   * Stop job container. Remove it from the containers map {@link #containers}. Clear resources.
+   * <p>
+   * IMPORTANT: This operation is synchronized, so blocks all the {@link #getJobContainer(String, String)} calls.
+   * @param jobCodeName a job code name
+   * @throws RuntimeException any
+   */
+  public void stopJobContainer(String jobCodeName) {
+    LOGGER.debug("STARTING TO REMOVE JOB CONTAINER: {}", jobCodeName);
+    if (containers.get(jobCodeName) == null) {
+      return;
+    }
+    try {
+      lock.lock();
+      Container container = containers.get(jobCodeName);
+      if (container == null) {
+        return;
+      }
+      stopJavaSparkContexts(container);
+      containers.remove(jobCodeName);
+      LOGGER.debug("JOBCONTAINER {} REMOVED", jobCodeName);
+      if (containers.size() == 0) {
+        LOGGER.debug("JOBCONTAINER RESET SPARKCONTEXT");
+        onStop();
+      }
+    } catch (Exception ex) {
+      ex.printStackTrace();
+    }
+    finally {
+      lock.unlock();
     }
   }
 

@@ -12,6 +12,7 @@ import ratpack.spark.jobserver.containers.ContainersService;
 import ratpack.spark.jobserver.jobs.dto.JobRequest;
 import ratpack.spark.jobserver.jobs.model.*;
 
+import java.io.IOException;
 import java.util.List;
 import java.util.Objects;
 import java.util.UUID;
@@ -84,7 +85,14 @@ public class JobsService {
             .flatMap(job -> jobsRepository.saveJob(job));
         }
       })
-      .map(Result::success);
+      .map(Result::success)
+      .mapError(ex -> {
+        ex.printStackTrace();
+        if (ex instanceof IOException || ex.getCause() != null && ex.getCause() instanceof IOException) {
+          containersService.stopJobContainer(jobRequest.getCodeName());
+        }
+        return Result.<Job>error(ex);
+      });
   }
 
   /**

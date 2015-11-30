@@ -4,6 +4,7 @@ import com.google.common.base.Strings;
 import com.google.common.collect.ImmutableList;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.spark.api.java.JavaSparkContext;
+import org.apache.spark.scheduler.SparkListenerApplicationEnd;
 
 import java.util.List;
 import java.util.Map;
@@ -106,5 +107,13 @@ public interface JobAPI {
       hdfs = hadoopConfig.get("fs.defaultFS", "");
     }
     return hdfs + outputDir + (jobId != null ? "-" + jobId : "");
+  }
+
+  /**
+   * Usually this method is called by {@link org.apache.spark.scheduler.SparkListener#onApplicationEnd(SparkListenerApplicationEnd)} and indicates that
+   * the application has been terminated.
+   * @param appName ended Spark application
+   */
+  default void onAppEnd(String appName) {
   }
 }

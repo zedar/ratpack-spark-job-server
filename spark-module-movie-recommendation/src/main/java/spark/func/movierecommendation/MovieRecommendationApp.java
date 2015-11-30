@@ -161,7 +161,7 @@ public class MovieRecommendationApp implements JobAPI {
       int rank = 10; // number of latent factors
       int numOfIters = 5; // number of iterations to train the model
 
-      model = ALS.trainImplicit(JavaRDD.toRDD(ratings), rank, numOfIters);
+      model = ALS.trainImplicit(JavaRDD.<Rating>toRDD(ratings), rank, numOfIters);
       LOGGER.info("BEFORE JOB MODEL TRAINED");
     }
     LOGGER.info("BEFORE JOB FINISHED");
@@ -196,7 +196,7 @@ public class MovieRecommendationApp implements JobAPI {
     Integer limit = Integer.parseInt(params.getOrDefault("limit", "10"));
     // find movies not rated by the given user
     Integer uId = Integer.parseInt(params.getOrDefault("userId", "0"));
-    Broadcast<Integer> userId = sparkContext.broadcast(uId);
+    Broadcast<Integer> userId = sparkContext.<Integer>broadcast(uId);
 
     // userid-movieid that are not rated by the given user
     JavaRDD<Tuple2<Integer, Integer>> itemsNotRatedByUser = ratings
