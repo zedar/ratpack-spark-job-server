@@ -76,6 +76,10 @@ Clone and build the project:
     $ C_INCLUDE_PATH=/usr/local/Cellar/lzo/2.06/include/lzo/LIBRARY_PATH=/usr/local/Cellar/lzo/2.06/lib/ mvn clean install
 ----
 
+or if you already have jar add it to local maven repository with the following command:
+----
+    $ mvn install:install-file -Dfile=./hadoop-lzo-0.4.20-SNAPSHOT.jar -DgroupId=com.hadoop.gplcompression -DartifactId=hadoop-lzo -Dversion=0.4.20-SNAPSHOT -Dpackaging=jar
+----
 === Import example access log data into the HDFS
 
 We assume that the current user is hadoop's user too. So create folder structure in hdfs directly. 
