@@ -107,3 +107,40 @@ asciidoctor {
   outputDir file("docs/apidef")
   backends = ['html5']
 }
+
+// ---------------------------------------------------------------------------------------------------------------------
+// ssh deployment configuration
+// ---------------------------------------------------------------------------------------------------------------------
+
+task installHost(dependsOn: "installDist") << {
+  ssh.run {
+    session(remotes.jobServer) {
+      def result = execute "uptime"
+      println "HOST UPTIME: ${result}"
+
+      println "HOST: remove /home/${jobServerUser}/run/${project.name}"
+      execute "rm -rf /home/${jobServerUser}/run/${project.name}"
+
+      println "HOST: create clean /home/${jobServerUser}/run/${project.name}"
+      execute "mkdir -p /home/${jobServerUser}/run/${project.name}"
+
+      println "HOST: copy distribution..."
+      put from: "${buildDir}/install/${project.name}", into: "/home/${jobServerUser}/run"
+
+      println "HOST: make startup script executable"
+      execute "chmod u+x /home/${jobServerUser}/run/${project.name}/bin/${project.name}"
+    }
+  }
+}
+
+task runHost(dependsOn: "installHost") << {
+  ssh.run {
+    session(remotes.jobServer) {
+      println "Stopping... "
+      execute "ps ax | grep -e '-classpath /home/${jobServerUser}/run/${project.name}' | grep -v grep | awk '{ print \$1 } ' | xargs kill -9", ignoreError: true
+
+      println "Starting..."
+      execute "nohup /home/${jobServerUser}/run/${project.name}/bin/${project.name} > /home/${jobServerUser}/run/${project.name}.log 2>&1&"
+    }
+  }
+}

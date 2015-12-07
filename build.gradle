@@ -4,6 +4,7 @@
 plugins {
   id "idea"
   id "checkstyle"
+  id "org.hidetake.ssh" version "1.1.4"
 }
 
 idea {
@@ -46,3 +47,34 @@ checkstyle {
 task wrapper(type: Wrapper) {
   gradleVersion = "2.7"
 }
+
+// ---------------------------------------------------------------------------------------------------------------------
+// ssh deployment configuration
+// ---------------------------------------------------------------------------------------------------------------------
+
+subprojects {
+  ssh.settings {
+    dryRun = project.hasProperty('dryRun')
+  }
+
+  remotes {
+    jobServer {
+      host = jobServerHost
+      user = jobServerUser
+      password = jobServerPassword
+    }
+  }
+}
+
+
+//task host_deploy(dependsOn: "host_install") << {
+//    ssh.run {
+//        session(remotes.dev) {
+//            println "Stopping..."
+//            execute "pkill -9 -f 'java -classpath /home/${devHostUser}'"
+//
+//            println "Starting..."
+//            execute "nohup dev/${project.name}/bin/${project.name} > dev/${project.name}.log 2>&1&"
+//        }
+//    }
+//}

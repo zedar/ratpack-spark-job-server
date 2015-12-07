@@ -81,3 +81,25 @@ checkstyle {
   configFile = new File(checkstyleConfigDir, "checkstyle.xml")
   configProperties.checkstyleConfigDir = checkstyleConfigDir
 }
+
+// ---------------------------------------------------------------------------------------------------------------------
+// ssh deployment configuration
+// ---------------------------------------------------------------------------------------------------------------------
+
+task installHost(dependsOn: "installDist") << {
+  ssh.run {
+    session(remotes.jobServer) {
+      def result = execute "uptime"
+      println "HOST UPTIME: ${result}"
+
+      println "HOST: remove /home/${jobServerUser}/run/${project.name}"
+      execute "rm -rf /home/${jobServerUser}/run/${project.name}"
+
+      println "HOST: create clean /home/${jobServerUser}/run/${project.name}"
+      execute "mkdir -p /home/${jobServerUser}/run/${project.name}/install"
+
+      println "HOST: copy distribution..."
+      put from: "${buildDir}/libs", into: "/home/${jobServerUser}/run/${project.name}/install"
+    }
+  }
+}

@@ -7,3 +7,4 @@
 .gradle
 ratpack-app/logs
 ratpack-app/src/ratpack/config/
+gradle.properties

@@ -30,8 +30,11 @@ import ratpack.server.BaseDir;
 import ratpack.server.RatpackServer;
 import ratpack.spark.jobserver.jobs.JobsEndpoints;
 
+import java.io.File;
 import java.net.URL;
+import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.Paths;
 
 /**
  * Starting point for the Apacke Spark jobs. Working with hadoop HDFS (distributed file system).
@@ -49,13 +52,25 @@ public class Main {
               .env()
               .sysProps();
 
-            URL applicationRsc = Main.class.getClassLoader().getResource("config/application.properties");
-            LOGGER.debug("OVERLOADED APPLICATION.PROPS: {}", applicationRsc != null ? applicationRsc.toString() : "NONE");
-            builder.props(applicationRsc != null ? applicationRsc : Main.class.getClassLoader().getResource("application.properties"));
+            Path localAppProps = Paths.get("../../config/application.properties");
+            if (Files.exists(localAppProps)) {
+              LOGGER.debug("LOCALLY OVERLOADED application.properties: {}", localAppProps.toUri().toString());
+              builder.props(localAppProps);
+            } else {
+              URL cpAppProps = Main.class.getClassLoader().getResource("config/application.properties");
+              LOGGER.debug("CLASSPATH OVERLOADED application.properties: {}", cpAppProps != null ? cpAppProps.toString() : "DEFAULT LOCATION");
+              builder.props(cpAppProps != null ? cpAppProps : Main.class.getClassLoader().getResource("application.properties"));
+            }
 
-            URL sparkJobsRsc = Main.class.getClassLoader().getResource("config/sparkjobs.properties");
-            LOGGER.debug("OVERLOADED SPARKJOBS.PROPS: {}", sparkJobsRsc != null ? sparkJobsRsc.toString() : "NONE");
-            builder.props(sparkJobsRsc != null ? sparkJobsRsc : Main.class.getClassLoader().getResource("sparkjobs.properties"));
+            Path localSparkJobsProps = Paths.get("../../config/sparkjobs.properties");
+            if (Files.exists(localSparkJobsProps)) {
+              LOGGER.debug("LOCALLY OVERLOADED sparkjobs.properties: {}", localSparkJobsProps.toUri().toString());
+              builder.props(localSparkJobsProps);
+            } else {
+              URL cpSparkJobsProps = Main.class.getClassLoader().getResource("config/sparkjobs.properties");
+              LOGGER.debug("CLASSPATH OVERLOADED SPARKJOBS.PROPS: {}", cpSparkJobsProps != null ? cpSparkJobsProps.toString() : "DEFAULT LOCATION");
+              builder.props(cpSparkJobsProps != null ? cpSparkJobsProps : Main.class.getClassLoader().getResource("sparkjobs.properties"));
+            }
 
             builder
               .require("/spark", SparkConfig.class)
