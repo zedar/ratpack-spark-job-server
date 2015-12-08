@@ -90,13 +90,14 @@ public interface JobAPI {
   }
 
   /**
-   * Calculates job's output path, where result data will be stored. If there is {@code JOBID_ARG} given then it is automatically
-   * added at the end of the path (with "-" sign before).
+   * Calculates job's output path, where result data will be stored. If there is {@code JOBID_ARG} defined and {@code appendJobId} parameter is set to true,
+   * then at the end of the path {@code jobId} is added (with "-" sign before).
    * @param hadoopConfig a configuration of Hadoop's HDFS
+   * @param appendJobId append unique jobId at the end of output folder name?
    * @param jobParams job parameters
    * @return string with a full path containing job's output files
    */
-  default String getJobOutputPath(Configuration hadoopConfig, Map<String, String> jobParams) {
+  default String getJobOutputPath(Configuration hadoopConfig, boolean appendJobId, Map<String, String> jobParams) {
     String jobId = jobParams.get(JOBID_ARG);
     String outputDir = jobParams.get(OUTPUTDIR_ARG);
     if (Strings.isNullOrEmpty(outputDir)) {
@@ -106,7 +107,17 @@ public interface JobAPI {
     if (hadoopConfig != null) {
       hdfs = hadoopConfig.get("fs.defaultFS", "");
     }
-    return hdfs + outputDir + (jobId != null ? "-" + jobId : "");
+    return hdfs + outputDir + (appendJobId ? (jobId != null ? "-" + jobId : "") : "");
+  }
+
+  /**
+   * Calculates job's output path with automatically added {@code jobId} at the end of the path
+   * @param hadoopConfig a configuration of the Hadoop's HDFS
+   * @param jobParams job parameters
+   * @return string with full job output path
+   */
+  default String getJobOutputPath(Configuration hadoopConfig, Map<String, String> jobParams) {
+    return getJobOutputPath(hadoopConfig, true, jobParams);
   }
 
   /**

@@ -26,7 +26,6 @@ import ratpack.exec.Promise;
 
 import java.lang.reflect.Method;
 import java.net.URLClassLoader;
-import java.util.UUID;
 
 /**
  * Container holds class loader, java spark context
@@ -107,7 +106,6 @@ public class Container {
    * Run the job for the given parameters
    * @param params map of job parameters
    * @return the promise for job's uuid
-   * @throws Exception any
    */
   public Promise<Void> runJob(ImmutableMap<String, String> params) {
     return Blocking.get(() -> {
@@ -134,21 +132,22 @@ public class Container {
    * @param params list of job parameters
    * @param <T> a data type containing job results
    * @return the promise for the job results
-   * @throws Exception any
    */
+  @SuppressWarnings("unchecked")
   public <T> Promise<T> fetchJobResults(ImmutableMap<String, String> params) {
-    return Blocking.get(() -> {
+    return Blocking.<T>get(() -> {
       ClassLoader classLoader = Thread.currentThread().getContextClassLoader();
+      T result = null;
       try {
         Thread.currentThread().setContextClassLoader(jobClassLoader);
-        T result = (T)fetchJobResultsMethod.invoke(job, hadoopConfiguration, javaSparkContext, params);
+        result = (T)fetchJobResultsMethod.invoke(job, hadoopConfiguration, javaSparkContext, params);
         if (afterJobMethod != null) {
           afterJobMethod.invoke(job, hadoopConfiguration, javaSparkContext, params);
         }
-        return result;
       } finally {
         Thread.currentThread().setContextClassLoader(classLoader);
       }
+      return result;
     });
   }
 }

@@ -144,3 +144,21 @@ task runHost(dependsOn: "installHost") << {
     }
   }
 }
+
+task stopHost << {
+  ssh.run {
+    session(remotes.jobServer) {
+      println "Stopping... "
+      execute "ps ax | grep -e '-classpath /home/${jobServerUser}/run/${project.name}' | grep -v grep | awk '{ print \$1 } ' | xargs kill -9", ignoreError: true
+    }
+  }
+}
+
+task restartHost(dependsOn: ["stopHost"]) << {
+  ssh.run {
+    session(remotes.jobServer) {
+      println "Starting..."
+      execute "nohup /home/${jobServerUser}/run/${project.name}/bin/${project.name} > /home/${jobServerUser}/run/${project.name}.log 2>&1&"
+    }
+  }
+}

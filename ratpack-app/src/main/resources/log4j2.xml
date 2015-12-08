@@ -33,6 +33,11 @@
       <!--<AppenderRef ref="RollingFile" />-->
     </AsyncLogger>
 
+    <AsyncLogger name="spark.module.log.analyzer" level="debug" additivity="false">
+      <AppenderRef ref="ConsoleClient"/>
+      <!--<AppenderRef ref="RollingFile" />-->
+    </AsyncLogger>
+
     <AsyncRoot level="error">
       <AppenderRef ref="Console"/>
       <!--<AppenderRef ref="RollingFile"/>-->
