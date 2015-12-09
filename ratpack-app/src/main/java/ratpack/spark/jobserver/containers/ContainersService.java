@@ -278,8 +278,10 @@ public class ContainersService {
     }
     // find urls for all jars necessary for Apache Spark
     ArrayList<URL> urlArrayList = new ArrayList<URL>();
-    Files.walk(Paths.get(config.getLibsDir())).forEach(p -> {
+    StringBuilder sb = new StringBuilder();
+    Files.walk(Paths.get(config.getLibsDir())).sorted().forEach(p -> {
       if (Files.isRegularFile(p)) {
+        sb.append(p.getFileName()).append("; ");
         try {
           urlArrayList.add(p.toUri().toURL());
         } catch (Exception ex) {
@@ -287,6 +289,7 @@ public class ContainersService {
         }
       }
     });
+    LOGGER.debug("SPRAK DRIVER CLASSPATH: {}", sb.toString());
     // create root class loader
     rootClassLoader = URLClassLoader.newInstance(urlArrayList.toArray(new URL[]{}), null);
 
