@@ -278,7 +278,7 @@ public class ContainersService {
     }
     // find urls for all jars necessary for Apache Spark
     ArrayList<URL> urlArrayList = new ArrayList<URL>();
-    Files.walk(Paths.get(config.getLibsDir())).forEach(p -> {
+    Files.walk(Paths.get(config.getLibsDir())).sorted().forEach(p -> {
       if (Files.isRegularFile(p)) {
         try {
           urlArrayList.add(p.toUri().toURL());

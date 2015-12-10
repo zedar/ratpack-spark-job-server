@@ -60,9 +60,16 @@ dependencies {
   runtime "org.apache.logging.log4j:log4j-slf4j-impl:2.4.1"
   runtime "org.apache.logging.log4j:log4j-api:2.4.1"
   runtime "org.apache.logging.log4j:log4j-core:2.4.1"
-  runtime "com.lmax:disruptor:3.3.2"
+  runtime "com.lmax:disruptor:3.3.2"    // required for async logging
 
   testCompile "org.spockframework:spock-core:1.0-groovy-2.4"
+
+  testCompile "org.spockframework:spock-core:0.7-groovy-2.0"
+  testCompile "cglib:cglib-nodep:3.2.0"       // byte code generation library for Java
+  testCompile "org.objenesis:objenesis:2.2" // required for mocking classes and final classes
+  testCompile ratpack.dependency("test")
+  testCompile ratpack.dependency("groovy-test")
+  testCompile ratpack.dependency("remote-test")
 }
 
 //----------------------------------------------------------------------------------------------------------------------
