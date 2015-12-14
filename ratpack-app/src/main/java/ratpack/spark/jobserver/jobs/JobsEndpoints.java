@@ -54,7 +54,11 @@ public class JobsEndpoints implements Action<Chain> {
         ctx.byMethod(spec -> spec
             .post(() -> ctx
                 .parse(fromJson(JobRequest.class))
-                .onError(ex -> ctx.render(json(Result.of(ratpack.exec.Result.error(ex)))))
+                .onError(ex -> {
+                  ex.printStackTrace();
+                  Result result = Result.of(ratpack.exec.Result.error(ex));
+                  ctx.render(json(result));
+                })
                 .onNull(() -> ctx.render(json(Result.of(ratpack.exec.Result.error(new UnexpectedException("INPUT PARSING ERROR"))))))
                 .then(request -> {
                   LOGGER.debug("REQ: {}", request.toString());

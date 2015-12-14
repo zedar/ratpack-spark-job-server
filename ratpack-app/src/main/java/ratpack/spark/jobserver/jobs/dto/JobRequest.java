@@ -12,6 +12,7 @@ import ratpack.spark.jobserver.jobs.model.JobExecMode;
 import ratpack.spark.jobserver.jobs.model.JobParam;
 
 import java.util.List;
+import java.util.Objects;
 
 /**
  * Set of parameters defining a job to be executed.
@@ -52,12 +53,15 @@ public class JobRequest {
    */
   @JsonCreator
   public static JobRequest of(
-    @JsonProperty("mode") String mode,
-    @JsonProperty("codeName") String codeName,
-    @JsonProperty("params") List<JobParam> params) {
-    return new JobRequest(
+      @JsonProperty("mode") String mode,
+      @JsonProperty("codeName") String codeName,
+      @JsonProperty("params") List<JobParam> params) {
+    Objects.requireNonNull(mode, "mode parameter is required");
+    Objects.requireNonNull(codeName, "codeName parameter is required");
+    JobRequest jobRequest = new JobRequest(
       Enums.getIfPresent(JobExecMode.class, mode).or(JobExecMode.ASYNC),
       codeName,
       params);
+    return jobRequest;
   }
 }
