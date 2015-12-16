@@ -103,8 +103,9 @@ public class JobsService {
    */
   public Promise<Result<Job>> get(final String jobId) throws Exception {
     Objects.requireNonNull(jobId);
+    LOGGER.debug("GET JOB BY ID: {}", jobId);
     return jobsRepository
       .findJob(jobId)
-      .flatMap(j -> j != null ? Promise.value(Result.success(j)) : Promise.value(Result.error(new IllegalArgumentException("JOB UNDEFINED id: " + jobId))));
+      .flatMap(j -> j != null ? Promise.value(Result.success(j)) : Promise.value(Result.error(new IllegalArgumentException("job with provided job id not found"))));
   }
 }

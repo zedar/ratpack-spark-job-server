@@ -34,40 +34,44 @@ public class JobsEndpoints implements Action<Chain> {
   @Override
   public void execute(Chain chain) throws Exception {
     chain
-      .path("jobs/:job_id", ctx -> {
-        String jobId = ctx.getPathTokens().get("job_id");
-        LOGGER.debug("GET JOB id: {}", jobId);
-        ctx.byMethod(spec -> spec
-          .get(() -> jobsService.get(jobId)
-            .map(Result::of)
-            .map(r -> {
-              LOGGER.debug("RESULT: {}", r.toString());
-              return json(r);
-            })
-            .then(ctx::render)
-          )
-        );
-      })
       .path("jobs", ctx -> {
         SparkJobsConfig config = ctx.get(SparkJobsConfig.class);
         LOGGER.debug("SPARK CONFIGS: " + config.toString());
         ctx.byMethod(spec -> spec
-            .post(() -> ctx
-                .parse(fromJson(JobRequest.class))
+          .post(() -> ctx
+              .parse(fromJson(JobRequest.class))
+              .onError(ex -> {
+                ex.printStackTrace();
+                ctx.render(json(Result.of(ratpack.exec.Result.error(ex))));
+              })
+              .onNull(() -> ctx.render(json(Result.of(ratpack.exec.Result.error(new UnexpectedException("INPUT PARSING ERROR"))))))
+              .then(request -> {
+                LOGGER.debug("REQ: {}", request.toString());
+                jobsService
+                  .apply(request)
+                  .map(Result::of)
+                  .map(r -> json(r))
+                  .then(ctx::render);
+              })
+          )
+          .get(() -> ctx.render(json(Result.of(ratpack.exec.Result.error(new IllegalArgumentException("job id is required"))))))
+        );
+      })
+      .path("jobs/:job_id", ctx -> {
+        String jobId = ctx.getPathTokens().get("job_id");
+        LOGGER.debug("GET JOB id: {}", jobId);
+        ctx.byMethod(spec -> spec
+            .get(() -> jobsService.get(jobId)
                 .onError(ex -> {
                   ex.printStackTrace();
-                  Result result = Result.of(ratpack.exec.Result.error(ex));
-                  ctx.render(json(result));
+                  ctx.render(json(Result.of(ratpack.exec.Result.error(ex))));
                 })
-                .onNull(() -> ctx.render(json(Result.of(ratpack.exec.Result.error(new UnexpectedException("INPUT PARSING ERROR"))))))
-                .then(request -> {
-                  LOGGER.debug("REQ: {}", request.toString());
-                  jobsService
-                    .apply(request)
-                    .map(Result::of)
-                    .map(r -> json(r))
-                    .then(ctx::render);
+                .map(Result::of)
+                .map(r -> {
+                  LOGGER.debug("RESULT: {}", r.toString());
+                  return json(r);
                 })
+                .then(ctx::render)
             )
         );
       });
