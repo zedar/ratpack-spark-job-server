@@ -65,7 +65,7 @@ configurations.all {
 // Build destribution - target jar and its dependencies
 //----------------------------------------------------------------------------------------------------------------------
 
-jar.archiveName="aa_log4j-defaults.jar"
+jar.archiveName="AA_JOBSERVER_log4j-defaults.jar"
 
 task cleanInstallLibDir(type: Delete) {
   delete project.file("${buildDir}/install/lib")
