@@ -73,6 +73,7 @@ public class ContainersService {
 
   // job application health check listener
   private Method jobAppHealthCheckIsHealthyMethod;
+  private Method getJobAppHealthCheckIsAppStartedMethod;
   private Object jobAppHealthCheckListener;
 
   @Inject
@@ -89,26 +90,30 @@ public class ContainersService {
    * @return the promise for job container
    */
   public Promise<Container> getJobContainer(String jobCodeName, String jobClassName) {
-    // Check if connection between Spark Driver and Spark Master is in healthy state
-    if (jobAppHealthCheckIsHealthyMethod != null && jobAppHealthCheckListener != null && javaSparkContext != null) {
-      try {
-        Boolean isHealthy = (Boolean) jobAppHealthCheckIsHealthyMethod.invoke(jobAppHealthCheckListener);
-        if (!isHealthy) {
-          return Promise.error(new IOException("SPARK_DRIVER_NO_MORE_EXECUTORS"));
-        }
-      } catch (Exception ex) {
-        return Promise.error(ex);
-      }
-    }
+    LOGGER.debug("GET JOB CONTAINER: {}", jobCodeName);
     Container container = containers.get(jobCodeName);
     if (container != null) {
+      // Check if connection between Spark Driver and Spark Master is in healthy state
+      if (jobAppHealthCheckIsHealthyMethod != null && jobAppHealthCheckListener != null && javaSparkContext != null) {
+        try {
+          Boolean isHealthy = (Boolean) jobAppHealthCheckIsHealthyMethod.invoke(jobAppHealthCheckListener);
+          if (!isHealthy) {
+            return Promise.error(new IOException("SPARK_DRIVER_NO_MORE_EXECUTORS"));
+          }
+        } catch (Exception ex) {
+          return Promise.error(ex);
+        }
+      }
       return Promise.value(container);
     }
     return Blocking.get(() -> {
       // IMPORTANT: lock is required in order to synchronize initalization of spark context.
-      // Spark context for the partivular job can be initialized only once.
+      // Spark context for the particular job can be initialized only once.
+      LOGGER.debug("WAITING FOR LOCK: {}", jobCodeName);
       lock.lock();
-      // IMPORTANT: many thread can wait for the lock. If spark context was intialized there is not need to initialize it again
+      LOGGER.debug("WORKING WITH LOCK: {}", jobCodeName);
+
+      // IMPORTANT: many threads can wait for the lock. If spark context was initialized, there is no need to initialize it again
       if (containers.get(jobCodeName) != null) {
         return containers.get(jobCodeName);
       }
@@ -190,10 +195,13 @@ public class ContainersService {
           Object sparkContext = scMethod.invoke(jsCtx);
           Class jobAppHealthCheckListenerClass = containersClassLoader.loadClass("spark.jobserver.JobAppHealthCheckListener");
           jobAppHealthCheckIsHealthyMethod = jobAppHealthCheckListenerClass.getMethod("isHealthy");
+          getJobAppHealthCheckIsAppStartedMethod = jobAppHealthCheckListenerClass.getMethod("isAppStarted");
           jobAppHealthCheckListener = jobAppHealthCheckListenerClass.newInstance();
           addSparkListenerMethod.invoke(sparkContext, jobAppHealthCheckListener);
 
           javaSparkContext = jsCtx;
+
+          LOGGER.debug("SPARK CTX CREATED");
         }
 
         Class appClass = containersClassLoader.loadClass(jobClassName);
@@ -213,9 +221,30 @@ public class ContainersService {
           throw new UnexpectedException("Job does not support JobAPI interface");
         }
 
-
+        int counter = 5;
+        while (counter >= 0) {
+          LOGGER.debug("CONTAINER WAITING FOR APP START [try {} ...]", counter);
+          if (getJobAppHealthCheckIsAppStartedMethod != null && jobAppHealthCheckListener != null && javaSparkContext != null) {
+            try {
+              Boolean isAppStarted = (Boolean) getJobAppHealthCheckIsAppStartedMethod.invoke(jobAppHealthCheckListener);
+              LOGGER.debug("JOB APP STARTED: {}", isAppStarted);
+              if (!isAppStarted) {
+                Thread.sleep(5000);
+              } else {
+                break;
+              }
+            } catch (Exception ex) {
+              break;
+            }
+          } else {
+            break;
+          }
+          counter--;
+        }
+        LOGGER.debug("CONTAINER FOR JOB CREATED");
       } finally {
         Thread.currentThread().setContextClassLoader(classLoader);
+        LOGGER.debug("RELEASED LOCK: {}", jobCodeName);
         lock.unlock();
       }
       return containers.get(jobCodeName);

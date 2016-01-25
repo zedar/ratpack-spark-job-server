@@ -13,7 +13,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 public class JobAppHealthCheckListener implements SparkListener {
   private static final Logger LOGGER = LoggerFactory.getLogger(JobAppHealthCheckListener.class);
 
-  private AtomicBoolean appStarted = new AtomicBoolean(true);
+  private AtomicBoolean appStarted = new AtomicBoolean(false);
   private AtomicInteger executorCounter = new AtomicInteger(0);
 
   /**
@@ -46,18 +46,19 @@ public class JobAppHealthCheckListener implements SparkListener {
 
   @Override
   public void onApplicationStart(SparkListenerApplicationStart applicationStart) {
-    appStarted.set(true);
+    appStarted.compareAndSet(false, true);
     LOGGER.debug("APPSTART [{}]", toString());
   }
 
   @Override
   public void onJobStart(SparkListenerJobStart jobStart) {
-    appStarted.set(true);
+    appStarted.compareAndSet(false, true);
     LOGGER.debug("JOBSTART [{}]", toString());
   }
 
   @Override
   public void onExecutorAdded(SparkListenerExecutorAdded executorAdded) {
+    appStarted.compareAndSet(false, true);
     executorCounter.incrementAndGet();
     LOGGER.debug("EXECUTORADDED [{}]", toString());
   }

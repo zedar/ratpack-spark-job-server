@@ -23,6 +23,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import ratpack.exec.Blocking;
 import ratpack.exec.Promise;
+import ratpack.exec.Result;
 
 import java.lang.reflect.Method;
 import java.net.URLClassLoader;
@@ -107,7 +108,7 @@ public class Container {
    * @param params map of job parameters
    * @return the promise for job's uuid
    */
-  public Promise<Void> runJob(ImmutableMap<String, String> params) {
+  public Promise<Result<Object>> runJob(ImmutableMap<String, String> params) {
     return Blocking.get(() -> {
       ClassLoader classLoader = Thread.currentThread().getContextClassLoader();
       try {
@@ -123,8 +124,9 @@ public class Container {
       finally {
         Thread.currentThread().setContextClassLoader(classLoader);
       }
-      return null;
-    });
+      return Result.success(job);
+    })
+      .mapError(ex -> Result.error(ex));
   }
 
   /**

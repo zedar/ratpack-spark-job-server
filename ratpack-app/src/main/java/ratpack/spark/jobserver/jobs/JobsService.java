@@ -74,10 +74,12 @@ public class JobsService {
               .flatMap(result -> jobsRepository
                   .findJob(uuid.toString())
                   .onNull(() -> Result.error(new IllegalArgumentException("JOB NOT REGISTERED id: " + uuid.toString())))
-                  .map(job -> job.jobStatus(JobExecStatus.FINISHED))
+                  .map(job -> result.isError() ? job.jobStatus(JobExecStatus.FAILED) : job.jobStatus(JobExecStatus.FINISHED))
               )
               .then(job -> {
-                LOGGER.debug("ASYNC EXECUTION: JOB [{}]", job.toString());
+                if (job != null) {
+                  LOGGER.debug("ASYNC EXECUTION: JOB [{}]", job.toString());
+                }
               });
           });
           return Promise
@@ -87,6 +89,7 @@ public class JobsService {
       })
       .map(Result::success)
       .mapError(ex -> {
+        LOGGER.error("JOB THROWN EXCEPTION: {}", ex.toString());
         ex.printStackTrace();
         if (ex instanceof IOException || ex.getCause() != null && ex.getCause() instanceof IOException) {
           containersService.stopJobContainer(jobRequest.getCodeName());
