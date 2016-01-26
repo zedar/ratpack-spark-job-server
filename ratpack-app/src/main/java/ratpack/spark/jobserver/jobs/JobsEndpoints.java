@@ -24,6 +24,7 @@ public class JobsEndpoints implements Action<Chain> {
 
   /**
    * Constructor and its injected dependencies
+   *
    * @param jobsService a reference to jobs service
    */
   @Inject
@@ -39,41 +40,38 @@ public class JobsEndpoints implements Action<Chain> {
         LOGGER.debug("SPARK CONFIGS: " + config.toString());
         ctx.byMethod(spec -> spec
           .post(() -> ctx
-              .parse(fromJson(JobRequest.class))
-              .onError(ex -> {
-                ex.printStackTrace();
-                ctx.render(json(Result.of(ratpack.exec.Result.error(ex))));
-              })
-              .onNull(() -> ctx.render(json(Result.of(ratpack.exec.Result.error(new UnexpectedException("INPUT PARSING ERROR"))))))
-              .then(request -> {
-                LOGGER.debug("REQ: {}", request.toString());
-                jobsService
-                  .apply(request)
-                  .map(Result::of)
-                  .map(r -> json(r))
-                  .then(ctx::render);
-              })
-          )
-          .get(() -> ctx.render(json(Result.of(ratpack.exec.Result.error(new IllegalArgumentException("job id is required"))))))
-        );
+            .parse(fromJson(JobRequest.class))
+            .onError(ex -> {
+              ex.printStackTrace();
+              ctx.render(json(Result.of(ratpack.exec.Result.error(ex))));
+            })
+            .onNull(() -> ctx.render(json(Result.of(ratpack.exec.Result.error(new UnexpectedException("INPUT PARSING ERROR"))))))
+            .flatMap(request -> jobsService.apply(request))
+            .map(Result::of)
+            .map(r -> json(r))
+            .then(ctx::render))
+          .get(() -> jobsService
+            .getAll()
+            .map(Result::of)
+            .map(r -> json(r))
+            .then(ctx::render)));
       })
       .path("jobs/:job_id", ctx -> {
         String jobId = ctx.getPathTokens().get("job_id");
         LOGGER.debug("GET JOB id: {}", jobId);
         ctx.byMethod(spec -> spec
-            .get(() -> jobsService.get(jobId)
-                .onError(ex -> {
-                  ex.printStackTrace();
-                  ctx.render(json(Result.of(ratpack.exec.Result.error(ex))));
-                })
-                .map(Result::of)
-                .map(r -> {
-                  LOGGER.debug("RESULT: {}", r.toString());
-                  return json(r);
-                })
-                .then(ctx::render)
-            )
-        );
+          .get(() -> jobsService
+            .get(jobId)
+            .onError(ex -> {
+              ex.printStackTrace();
+              ctx.render(json(Result.of(ratpack.exec.Result.error(ex))));
+            })
+            .map(Result::of)
+            .map(r -> {
+              LOGGER.debug("RESULT: {}", r.toString());
+              return json(r);
+            })
+            .then(ctx::render)));
       });
   }
 }

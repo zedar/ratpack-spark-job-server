@@ -13,6 +13,7 @@ import ratpack.spark.jobserver.jobs.dto.JobRequest;
 import ratpack.spark.jobserver.jobs.model.*;
 
 import java.io.IOException;
+import java.util.Collection;
 import java.util.List;
 import java.util.Objects;
 import java.util.UUID;
@@ -48,6 +49,7 @@ public class JobsService {
    * @throws Exception any
    */
   public Promise<Result<Job>> apply(final JobRequest jobRequest) throws Exception{
+    LOGGER.debug("JOB REQ: {}", jobRequest.toString());
     Objects.requireNonNull(jobRequest.getMode());
     Objects.requireNonNull(jobRequest.getCodeName());
     return containersService
@@ -109,6 +111,19 @@ public class JobsService {
     LOGGER.debug("GET JOB BY ID: {}", jobId);
     return jobsRepository
       .findJob(jobId)
-      .flatMap(j -> j != null ? Promise.value(Result.success(j)) : Promise.value(Result.error(new IllegalArgumentException("job with provided job id not found"))));
+      .map(j -> j != null ? Result.success(j) : Result.<Job>error(new IllegalArgumentException("Job with id: " + jobId + " does not exist")))
+      .mapError(Result::error);
+  }
+
+  /**
+   * Get collection of all reagistered jobs
+   * @return the promise for the list of registered jobs
+   * @throws Exception any
+   */
+  public Promise<Result<Collection<Job>>> getAll() throws Exception {
+    return jobsRepository
+      .findJobs()
+      .map(Result::success)
+      .mapError(Result::error);
   }
 }

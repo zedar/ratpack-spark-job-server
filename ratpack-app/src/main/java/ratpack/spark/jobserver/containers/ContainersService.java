@@ -221,6 +221,7 @@ public class ContainersService {
           throw new UnexpectedException("Job does not support JobAPI interface");
         }
 
+        // IMPORTANT: to be sure that at least one executor is available
         int counter = 5;
         while (counter >= 0) {
           LOGGER.debug("CONTAINER WAITING FOR APP START [try {} ...]", counter);

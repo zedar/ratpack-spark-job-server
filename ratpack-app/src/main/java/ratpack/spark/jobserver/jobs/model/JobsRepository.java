@@ -5,6 +5,9 @@ import com.google.common.cache.CacheBuilder;
 import ratpack.exec.Promise;
 import ratpack.exec.Result;
 
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.List;
 import java.util.Objects;
 
 /**
@@ -25,5 +28,13 @@ public class JobsRepository {
 
   public Promise<Job> findJob(final String jobId) throws Exception {
     return Promise.value(cache.getIfPresent(jobId));
+  }
+
+  public Promise<Collection<Job>> findJobs() throws Exception {
+    if (cache.size() == 0) {
+      return Promise.value(Arrays.asList());
+    } else {
+      return Promise.value(cache.asMap().values());
+    }
   }
 }

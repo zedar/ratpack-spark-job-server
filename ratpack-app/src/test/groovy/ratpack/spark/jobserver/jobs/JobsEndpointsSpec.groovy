@@ -4,6 +4,7 @@ import com.fasterxml.jackson.databind.JsonNode
 import com.fasterxml.jackson.databind.ObjectMapper
 import groovy.json.JsonOutput
 import groovy.json.JsonSlurper
+import ratpack.exec.Blocking
 import ratpack.exec.Promise
 import ratpack.jackson.JsonRender
 import ratpack.spark.jobserver.SparkConfig
@@ -85,6 +86,7 @@ class JobsEndpointsSpec extends Specification {
 
   def "required parameters for /jobs/:job_id endpoint has to be provided"() {
     when:
+    jobsRepository.findJobs() >> Promise.value(Arrays.asList())
     HandlingResult result = requestFixture.uri("jobs").method("GET").handleChain(jobsEndpoints)
 
     then:
@@ -95,8 +97,8 @@ class JobsEndpointsSpec extends Specification {
     jr.object instanceof Result
     Result r = (Result)jr.object
     r
-    r.errorCode == "IllegalArgumentException"
-    r.errorMessage == "job id is required"
+    r.errorCode == "0"
+    r.data == []
   }
 
   def "job not found for /jobs/:job_id"() {
@@ -115,7 +117,7 @@ class JobsEndpointsSpec extends Specification {
     Result r = (Result)jr.object
     r
     r.errorCode == "IllegalArgumentException"
-    r.errorMessage == "job with provided job id not found"
+    r.errorMessage == "Job with id: 1 does not exist"
   }
 
   def "job found for /jobs/:job_id"() {
@@ -138,4 +140,41 @@ class JobsEndpointsSpec extends Specification {
     r.data == job
   }
 
+  def "get list of jobs"() {
+    given:
+    List<Job> jobs = [
+      Job.of(UUID.fromString("f82eaaa6-c3a0-11e5-9912-ba0be0483c18"), JobExecStatus.WORKING),
+      Job.of(UUID.fromString("f82eaee8-c3a0-11e5-9912-ba0be0483c18"), JobExecStatus.FAILED),
+      Job.of(UUID.fromString("f82eb00a-c3a0-11e5-9912-ba0be0483c18"), JobExecStatus.FINISHED)
+    ]
+    jobsRepository.findJobs() >> Promise.value(jobs)
+
+    when:
+    def result = requestFixture.uri("jobs").method("GET").handleChain(jobsEndpoints)
+
+    then:
+    result.status.code == 200
+    JsonRender jr = result.rendered(JsonRender)
+    jr
+    jr.object
+    jr.object instanceof Result
+    Result<Collection<Job>> r = (Result<Collection<Job>>)jr.object
+    r.errorCode == "0"
+    r.data == jobs
+  }
+
+  def "get list of jobs - handle error"() {
+    given:
+    jobsRepository.findJobs() >> { Blocking.get { throw new IOException("IO") } }
+
+    when:
+    def result = requestFixture.uri("jobs").method("GET").handleChain(jobsEndpoints)
+
+    then:
+    result.status.code == 200
+    JsonRender render = result.rendered(JsonRender)
+    render.object instanceof Result
+    Result r = (Result)render.object
+    r.errorCode == "IOException"
+  }
 }
