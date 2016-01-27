@@ -180,6 +180,9 @@ public class ContainersService {
           if (!Strings.isNullOrEmpty(config.getExtraJavaOptions())) {
             m.invoke(sparkConfig, "spark.executor.extraJavaOptions", config.getExtraJavaOptions());
           }
+          if (!Strings.isNullOrEmpty(config.getEsNodes())) {
+            m.invoke(sparkConfig, "es.nodes", config.getEsNodes());
+          }
           //m.invoke(sparkConf, "spark.broadcast.factory", "org.apache.spark.broadcast.HttpBroadcastFactory");
           Method sparkConfSetJarsMethod = sparkConfClass.getMethod("setJars", new Class[]{String[].class});
           sparkConfSetJarsMethod.invoke(sparkConfig, new Object[]{sparkContextJars.keySet().toArray(new String[]{})});

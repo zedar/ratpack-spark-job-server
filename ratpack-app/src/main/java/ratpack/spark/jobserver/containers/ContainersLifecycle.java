@@ -20,6 +20,8 @@ import org.slf4j.LoggerFactory;
 import ratpack.server.Service;
 import ratpack.server.StartEvent;
 import ratpack.server.StopEvent;
+import ratpack.spark.jobserver.SparkConfig;
+import ratpack.spark.jobserver.SparkJobsConfig;
 
 import javax.inject.Inject;
 
@@ -29,16 +31,21 @@ import javax.inject.Inject;
 public class ContainersLifecycle implements Service {
   private static final Logger LOGGER = LoggerFactory.getLogger(ContainersLifecycle.class);
 
+  private final SparkConfig sparkConfig;
+  private final SparkJobsConfig sparkJobsConfig;
   private final ContainersService containersService;
 
-  @Inject
-  public ContainersLifecycle(final ContainersService containersService) {
+  public ContainersLifecycle(final SparkConfig sparkConfig, final SparkJobsConfig sparkJobsConfig, final ContainersService containersService) {
+    this.sparkConfig = sparkConfig;
+    this.sparkJobsConfig = sparkJobsConfig;
     this.containersService = containersService;
   }
 
   @Override
   public void onStart(StartEvent event) throws Exception {
     LOGGER.info("STARTED");
+    LOGGER.debug("SPARK CONFIG: {}", sparkConfig.toString());
+    LOGGER.debug("SPARK JOBS CONFIG: {}", sparkJobsConfig.toString());
   }
 
   @Override

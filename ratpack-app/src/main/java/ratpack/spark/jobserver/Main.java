@@ -78,14 +78,11 @@ public class Main {
               .require("/job", SparkJobsConfig.class);
           }
         )
-        .registry(Guice.registry(bindingsSpec -> {
-          bindingsSpec
-            .bindInstance(ResponseTimer.decorator())
-            .module(ContainersModule.class)
-            .module(SparkModule.class)
-            .bindInstance(new ObjectMapper().writerWithDefaultPrettyPrinter())
-            .bind(ContainersLifecycle.class);
-        }))
+        .registry(Guice.registry(bindingsSpec -> bindingsSpec
+          .bindInstance(ResponseTimer.decorator())
+          .module(ContainersModule.class)
+          .module(SparkModule.class)
+          .bindInstance(new ObjectMapper().writerWithDefaultPrettyPrinter())))
         .handlers(chain -> chain
             .all(ctx -> {
               LOGGER.debug("ALL");

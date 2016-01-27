@@ -4,6 +4,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import ratpack.func.Action;
 import ratpack.handling.Chain;
+import ratpack.spark.jobserver.SparkConfig;
 import ratpack.spark.jobserver.SparkJobsConfig;
 import ratpack.spark.jobserver.dto.Result;
 import ratpack.spark.jobserver.jobs.dto.JobRequest;
@@ -36,8 +37,6 @@ public class JobsEndpoints implements Action<Chain> {
   public void execute(Chain chain) throws Exception {
     chain
       .path("jobs", ctx -> {
-        SparkJobsConfig config = ctx.get(SparkJobsConfig.class);
-        LOGGER.debug("SPARK CONFIGS: " + config.toString());
         ctx.byMethod(spec -> spec
           .post(() -> ctx
             .parse(fromJson(JobRequest.class))
