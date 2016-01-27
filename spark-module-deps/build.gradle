@@ -48,6 +48,8 @@ dependencies {
   compile "com.google.re2j:re2j:1.0"
   // Job server API
   compile "spark.job.server:spark-job-interface:0.1.0"
+  // Elasticsearch integration
+  compile "org.elasticsearch:elasticsearch-spark_2.10:2.1.2"
 }
 
 configurations.all {
