@@ -21,7 +21,6 @@ class ContainersLifecycleSpec extends Specification {
     containersService = Mock(ContainersService)
   }
 
-  @IgnoreRest
   def "containers lifecycle established"() {
     given:
     def app = GroovyEmbeddedApp.of {
