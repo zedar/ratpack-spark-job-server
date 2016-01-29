@@ -97,6 +97,7 @@ class ProxySpec extends Specification {
     proxy.getValue() == "bar"
   }
 
+  @IgnoreRest
   def "set object attribute for proxied interface"() {
     given:
     URLClassLoader targetCL = ProxyFactory.getDirClassLoader(testClassesPath)
@@ -128,6 +129,7 @@ class ProxySpec extends Specification {
     proxy
     proxy.getName() == "foo"
     proxy.getValue() == "bar"
+    println("1: ${proxy.toString()}")
 
     when:
     proxy.setAttr(proxyAttr2.getTarget())
@@ -135,5 +137,15 @@ class ProxySpec extends Specification {
     then:
     proxy.getName() == "baz"
     proxy.getValue() == "qux"
+    println("2: ${proxy.toString()}")
+
+    when:
+    proxy.setName("quux")
+    proxy.setValue("corge")
+
+    then:
+    proxy.getName() == "quux"
+    proxy.getValue() == "corge"
+    println("3: ${proxy.toString()}")
   }
 }

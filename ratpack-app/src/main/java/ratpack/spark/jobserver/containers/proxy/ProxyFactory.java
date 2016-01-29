@@ -17,6 +17,8 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
+import java.util.function.BiFunction;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -38,6 +40,18 @@ public class ProxyFactory {
     private final Object targetObj;
     private final Class targetObjClass;
     private ConcurrentMap<String, Method> cache = new ConcurrentHashMap<>();
+    private Function<Class, Function<Object[], Function<String, Method>>> cache2 =
+      objClass ->
+        methodArgs ->
+          Memoizer.memoize(Unchecker.uncheck(methodName -> {
+            System.out.println("CALLED FOR: " + methodName + " ARGS: " + methodArgs);
+            if (methodArgs != null && methodArgs.length > 0) {
+              Class<?>[] methodArgsTypes = Stream.of(methodArgs).map(o -> o.getClass()).toArray(Class[]::new);
+              return objClass.getMethod(methodName, methodArgsTypes);
+            } else {
+              return objClass.getMethod(methodName);
+            }
+          }));
 
     public Handler(URLClassLoader classLoader, Object targetObj, Class targetObjClass) {
       this.classLoader = classLoader;
@@ -54,14 +68,15 @@ public class ProxyFactory {
         if ("getTarget".equals(methodName)) {
           return targetObj;
         } else {
-          Method targetMethod = cache.computeIfAbsent(methodName, mn -> uncheckCall(mn, mn1 -> {
+          Method targetMethod = cache2.apply(targetObjClass).apply(args).apply(methodName);
+          /*Method targetMethod = cache.computeIfAbsent(methodName, mn -> uncheckCall(mn, mn1 -> {
             if (args != null && args.length > 0) {
               Class<?>[] types = Stream.of(args).map(o -> o.getClass()).toArray(Class[]::new);
               return targetObjClass.getMethod(mn1, types);
             } else {
               return targetObjClass.getMethod(mn1);
             }
-          }));
+          }));*/
           if (targetMethod != null) {
             return targetMethod.invoke(targetObj, args);
           } else {
