@@ -15,6 +15,8 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentMap;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -31,10 +33,11 @@ import java.util.stream.Stream;
 public class ProxyFactory {
   private static final Logger LOGGER = LoggerFactory.getLogger(ProxyFactory.class);
 
-  public static class Handler implements java.lang.reflect.InvocationHandler {
+  private static class Handler implements java.lang.reflect.InvocationHandler {
     private final URLClassLoader classLoader;
     private final Object targetObj;
     private final Class targetObjClass;
+    private ConcurrentMap<String, Method> cache = new ConcurrentHashMap<>();
 
     public Handler(URLClassLoader classLoader, Object targetObj, Class targetObjClass) {
       this.classLoader = classLoader;
@@ -51,13 +54,14 @@ public class ProxyFactory {
         if ("getTarget".equals(methodName)) {
           return targetObj;
         } else {
-          Method targetMethod = null;
-          if (args != null && args.length > 0) {
-            Class<?>[] types = Stream.of(args).map(o -> o.getClass()).toArray(Class[]::new);
-            targetMethod = targetObjClass.getMethod(methodName, types);
-          } else {
-            targetMethod = targetObjClass.getMethod(methodName);
-          }
+          Method targetMethod = cache.computeIfAbsent(methodName, mn -> uncheckCall(mn, mn1 -> {
+            if (args != null && args.length > 0) {
+              Class<?>[] types = Stream.of(args).map(o -> o.getClass()).toArray(Class[]::new);
+              return targetObjClass.getMethod(mn1, types);
+            } else {
+              return targetObjClass.getMethod(mn1);
+            }
+          }));
           if (targetMethod != null) {
             return targetMethod.invoke(targetObj, args);
           } else {
